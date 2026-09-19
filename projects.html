@@ -6,15 +6,15 @@
 <link rel="stylesheet" href="assets/style.css">
 </head><body>
 <nav><div class="wrap"><a class="brand" href="index.html">Ivy B. Buncaras</a>
-<div class="links"><a href="about.html">About</a><a href="projects.html">Projects</a><a href="research.html">Research</a><a href="library.html">Library</a><a href="contact.html">Contact</a></div></div></nav>
+<div class="links"><a href="about.html">About</a><a href="projects.html">Projects</a><a href="research.html">Research</a><a href="library.html">Library</a><a href="blog.html">Blog</a><a href="contact.html">Contact</a></div></div></nav>
 <header class="page-hero"><div class="wrap">
 <div class="eyebrow">Portfolio</div>
 <h1>Projects</h1>
 <p>A selection of systems built for real schools and public offices.</p>
 </div></header>
 <section id="projects"><div class="wrap">
-<div class="filters reveal" id="filters"></div>
-<div class="grid" id="projects-grid"></div>
+<div class="filters reveal" id="filters" style="display:none"></div>
+<div class="grid" id="projects-grid"><div class="loading">Loading projects…</div></div>
 </div></section>
 <footer id="contact-footer">
 <div class="eyebrow" style="color:var(--gold-l)">Get in touch</div>
@@ -22,5 +22,35 @@
 <div id="social"></div>
 <p style="font-size:13px;color:#9aa3c0;margin-top:24px">© <span id="yr"></span> Ivy B. Buncaras · Masbate, Philippines</p>
 </footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/db.js"></script>
 <script src="assets/script.js"></script>
+<script>
+(async function(){
+  const grid=document.getElementById('projects-grid');
+  const filtersEl=document.getElementById('filters');
+  if(!dbReady()){ notConfiguredNotice(grid); return; }
+  let projects=[];
+  try{ projects=await fetchProjects(); }
+  catch(e){ grid.innerHTML='<div class="empty">Couldn\'t load projects right now.</div>'; return; }
+  if(!projects.length){ grid.innerHTML='<div class="empty">No projects added yet.</div>'; return; }
+
+  const card=p=>`<article class="card reveal" data-c="${escapeHtml(p.category)}">
+      ${p.cover_url?`<img src="${p.cover_url}" alt="" style="width:100%;border-radius:2px;margin-bottom:14px">`:''}
+      <h3>${escapeHtml(p.title)}</h3>
+      <div class="chips">${(p.tags||[]).map(x=>`<span class="chip">${escapeHtml(x)}</span>`).join('')}</div>
+      <p>${escapeHtml(p.description||'')}</p>
+      ${p.link_url?`<a class="more" href="${p.link_url}" target="_blank" rel="noopener">View →</a>`:''}
+    </article>`;
+  const render=f=>{ grid.innerHTML=projects.filter(p=>f==='All'||p.category===f).map(card).join(''); if(window.obs) obs(); };
+  const cats=['All',...new Set(projects.map(p=>p.category))];
+  if(cats.length>2){
+    filtersEl.style.display='flex';
+    filtersEl.innerHTML=cats.map((c,i)=>`<button class="${i?'':'on'}">${escapeHtml(c)}</button>`).join('');
+    filtersEl.querySelectorAll('button').forEach(b=>b.onclick=()=>{filtersEl.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');render(b.textContent);});
+  }
+  render('All');
+})();
+</script>
 </body></html>
