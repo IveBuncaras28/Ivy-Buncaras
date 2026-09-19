@@ -5,14 +5,14 @@ const loginScreen = document.getElementById('login-screen');
 const dashboard = document.getElementById('dashboard');
 
 if(!sb){
-  loginScreen.innerHTML = '<h1>Not connected</h1><p style="color:var(--muted);font-size:14px;text-align:center">Fill in <code>assets/supabase-config.js</code> with your Supabase project URL and key first.</p>';
+  loginScreen.innerHTML = '<div class="login-box"><div class="login-mark">IB</div><h1>Not connected</h1><p class="login-sub">Fill in <code>assets/supabase-config.js</code> with your Supabase project URL and key first.</p></div>';
 }else{
   init();
 }
 
 async function init(){
   const { data: { session } } = await sb.auth.getSession();
-  if(session){ showDashboard(); } else { showLogin(); }
+  if(session){ showDashboard(session.user.email); } else { showLogin(); }
 
   document.getElementById('login-form').addEventListener('submit', async (ev)=>{
     ev.preventDefault();
@@ -22,7 +22,7 @@ async function init(){
     msg.textContent = '';
     const { error } = await sb.auth.signInWithPassword({ email, password });
     if(error){ msg.innerHTML = `<div class="msg err">${escapeHtml(error.message)}</div>`; return; }
-    showDashboard();
+    showDashboard(email);
   });
 
   document.getElementById('signout').addEventListener('click', async ()=>{
@@ -47,8 +47,10 @@ async function init(){
 }
 
 function showLogin(){ loginScreen.style.display='block'; dashboard.style.display='none'; }
-function showDashboard(){
+function showDashboard(email){
   loginScreen.style.display='none'; dashboard.style.display='block';
+  const who=document.getElementById('who-email');
+  if(who && email) who.textContent = email;
   loadPosts(); loadProjects(); loadResearch(); loadBooks(); loadComments();
 }
 
