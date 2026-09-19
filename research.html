@@ -6,15 +6,14 @@
 <link rel="stylesheet" href="assets/style.css">
 </head><body>
 <nav><div class="wrap"><a class="brand" href="index.html">Ivy B. Buncaras</a>
-<div class="links"><a href="about.html">About</a><a href="projects.html">Projects</a><a href="research.html">Research</a><a href="library.html">Library</a><a href="contact.html">Contact</a></div></div></nav>
+<div class="links"><a href="about.html">About</a><a href="projects.html">Projects</a><a href="research.html">Research</a><a href="library.html">Library</a><a href="blog.html">Blog</a><a href="contact.html">Contact</a></div></div></nav>
 <header class="page-hero"><div class="wrap">
 <div class="eyebrow">Publications</div>
 <h1>Research &amp; Preprints</h1>
 <p>Proposals, preprints, and documented innovation work.</p>
 </div></header>
 <section id="research"><div class="wrap">
-<div class="grid" id="research-grid"></div>
-<p class="note reveal" style="margin-top:34px">Send me your GitHub username and the direct links to your ResearchGate / SSRN papers, and every card here will point to the real thing.</p>
+<div class="grid" id="research-grid"><div class="loading">Loading research…</div></div>
 </div></section>
 <footer id="contact-footer">
 <div class="eyebrow" style="color:var(--gold-l)">Get in touch</div>
@@ -22,5 +21,29 @@
 <div id="social"></div>
 <p style="font-size:13px;color:#9aa3c0;margin-top:24px">© <span id="yr"></span> Ivy B. Buncaras · Masbate, Philippines</p>
 </footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/db.js"></script>
 <script src="assets/script.js"></script>
+<script>
+(async function(){
+  const grid=document.getElementById('research-grid');
+  if(!dbReady()){ notConfiguredNotice(grid); return; }
+  let items=[];
+  try{ items=await fetchResearch(); }
+  catch(e){ grid.innerHTML='<div class="empty">Couldn\'t load research right now.</div>'; return; }
+  if(!items.length){ grid.innerHTML='<div class="empty">No papers added yet.</div>'; return; }
+
+  grid.innerHTML=items.map(r=>`
+    <article class="card reveal">
+      ${r.cover_url?`<img src="${r.cover_url}" alt="" style="width:100%;border-radius:2px;margin-bottom:14px">`:''}
+      <div class="chips"><span class="chip">${escapeHtml(r.venue)}</span></div>
+      <h3>${escapeHtml(r.title)}</h3>
+      <p>${escapeHtml(r.description||'')}</p>
+      ${r.file_url?`<a class="more" href="${r.file_url}" target="_blank" rel="noopener">Download →</a> `:''}
+      ${r.link_url?`<a class="more" href="${r.link_url}" target="_blank" rel="noopener">Read paper →</a>`:''}
+    </article>`).join('');
+  if(window.obs) obs();
+})();
+</script>
 </body></html>
