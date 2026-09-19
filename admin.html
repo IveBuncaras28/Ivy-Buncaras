@@ -9,30 +9,46 @@
 <nav><div class="wrap"><a class="brand" href="index.html">Ivy B. Buncaras</a>
 <div class="links"><a href="index.html">← Back to site</a></div></div></nav>
 
-<div id="login-screen" class="login-box">
-  <h1>Admin Sign In</h1>
-  <form id="login-form">
-    <input type="email" id="login-email" placeholder="Email" required autocomplete="username">
-    <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password">
-    <button class="btn p" type="submit">Sign In</button>
-    <div id="login-msg"></div>
-  </form>
+<div id="login-screen" class="admin-hero">
+  <div class="login-box">
+    <div class="login-mark">IB</div>
+    <div class="eyebrow" style="text-align:center;color:var(--gold)">Private Access</div>
+    <h1>Welcome back</h1>
+    <p class="login-sub">Sign in to manage your posts, projects, research, and library.</p>
+    <form id="login-form">
+      <label class="field-label">Email</label>
+      <input type="email" id="login-email" placeholder="you@example.com" required autocomplete="username">
+      <label class="field-label">Password</label>
+      <input type="password" id="login-password" placeholder="••••••••" required autocomplete="current-password">
+      <button class="btn p" type="submit" style="width:100%;margin-top:6px">Sign In</button>
+      <div id="login-msg"></div>
+    </form>
+  </div>
 </div>
 
 <div id="dashboard" class="admin-shell" style="display:none">
   <div class="admin-bar">
-    <div class="admin-tabs">
-      <button data-tab="posts" class="on">Posts</button>
-      <button data-tab="projects">Projects</button>
-      <button data-tab="research">Research</button>
-      <button data-tab="books">Library</button>
-      <button data-tab="comments">Comments</button>
+    <div>
+      <div class="eyebrow" style="color:var(--gold)">Dashboard</div>
+      <h1 class="admin-title">Manage your site</h1>
     </div>
-    <button class="signout" id="signout">Sign out</button>
+    <div class="admin-bar-right">
+      <span class="who-pill">Signed in as <b id="who-email"></b></span>
+      <button class="signout" id="signout">Sign out</button>
+    </div>
+  </div>
+
+  <div class="admin-tabs">
+    <button data-tab="posts" class="on">Posts</button>
+    <button data-tab="projects">Projects</button>
+    <button data-tab="research">Research</button>
+    <button data-tab="books">Library</button>
+    <button data-tab="comments">Comments</button>
   </div>
 
   <!-- POSTS -->
   <div class="admin-panel on" id="panel-posts">
+    <div class="panel-head"><h2>New / Edit Post</h2><p>Write in Markdown, add a cover, and publish when ready.</p></div>
     <form class="admin-form" id="post-form">
       <input type="hidden" id="post-id">
       <div class="row2">
@@ -47,8 +63,8 @@
         <img id="post-cover-preview" style="display:none">
         <input type="hidden" id="post-cover-url">
       </div>
-      <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0">
-        <input type="checkbox" id="post-published" style="width:auto"> Published (visible to the public)
+      <label class="check-row">
+        <input type="checkbox" id="post-published"> Published (visible to the public)
       </label>
       <div class="actions">
         <button class="btn-mini primary" type="submit">Save Post</button>
@@ -56,11 +72,13 @@
         <span id="post-msg"></span>
       </div>
     </form>
+    <div class="panel-head"><h2>All Posts</h2></div>
     <div class="admin-list" id="posts-list"><div class="loading">Loading…</div></div>
   </div>
 
   <!-- PROJECTS -->
   <div class="admin-panel" id="panel-projects">
+    <div class="panel-head"><h2>New / Edit Project</h2><p>These appear on your Projects page, filterable by category.</p></div>
     <form class="admin-form" id="project-form">
       <input type="hidden" id="project-id">
       <div class="row2">
@@ -84,11 +102,13 @@
         <span id="project-msg"></span>
       </div>
     </form>
+    <div class="panel-head"><h2>All Projects</h2></div>
     <div class="admin-list" id="projects-list"><div class="loading">Loading…</div></div>
   </div>
 
   <!-- RESEARCH -->
   <div class="admin-panel" id="panel-research">
+    <div class="panel-head"><h2>New / Edit Paper</h2><p>Add a preprint or publication, with an optional PDF.</p></div>
     <form class="admin-form" id="research-form">
       <input type="hidden" id="research-id">
       <div class="row2">
@@ -112,11 +132,13 @@
         <span id="research-msg"></span>
       </div>
     </form>
+    <div class="panel-head"><h2>All Research</h2></div>
     <div class="admin-list" id="research-list"><div class="loading">Loading…</div></div>
   </div>
 
   <!-- BOOKS -->
   <div class="admin-panel" id="panel-books">
+    <div class="panel-head"><h2>New / Edit Book</h2><p>Add a title to your library, with a shelf, rating, and cover.</p></div>
     <form class="admin-form" id="book-form">
       <input type="hidden" id="book-id">
       <div class="row2">
@@ -147,12 +169,13 @@
         <span id="book-msg"></span>
       </div>
     </form>
+    <div class="panel-head"><h2>All Books</h2></div>
     <div class="admin-list" id="books-list"><div class="loading">Loading…</div></div>
   </div>
 
   <!-- COMMENTS -->
   <div class="admin-panel" id="panel-comments">
-    <p style="color:var(--muted);font-size:14px;margin-bottom:16px">New comments are hidden from the public site until you approve them here.</p>
+    <div class="panel-head"><h2>Comments</h2><p>New comments are hidden from the public site until you approve them here.</p></div>
     <div class="admin-list" id="comments-list"><div class="loading">Loading…</div></div>
   </div>
 </div>
