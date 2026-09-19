@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin — Ivy B. Buncaras</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head><body>
+<nav><div class="wrap"><a class="brand" href="index.html">Ivy B. Buncaras</a>
+<div class="links"><a href="index.html">← Back to site</a></div></div></nav>
+
+<div id="login-screen" class="login-box">
+  <h1>Admin Sign In</h1>
+  <form id="login-form">
+    <input type="email" id="login-email" placeholder="Email" required autocomplete="username">
+    <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password">
+    <button class="btn p" type="submit">Sign In</button>
+    <div id="login-msg"></div>
+  </form>
+</div>
+
+<div id="dashboard" class="admin-shell" style="display:none">
+  <div class="admin-bar">
+    <div class="admin-tabs">
+      <button data-tab="posts" class="on">Posts</button>
+      <button data-tab="projects">Projects</button>
+      <button data-tab="research">Research</button>
+      <button data-tab="books">Library</button>
+      <button data-tab="comments">Comments</button>
+    </div>
+    <button class="signout" id="signout">Sign out</button>
+  </div>
+
+  <!-- POSTS -->
+  <div class="admin-panel on" id="panel-posts">
+    <form class="admin-form" id="post-form">
+      <input type="hidden" id="post-id">
+      <div class="row2">
+        <div><label>Title</label><input type="text" id="post-title" required></div>
+        <div><label>Slug (URL)</label><input type="text" id="post-slug" required></div>
+      </div>
+      <div><label>Excerpt (shown on the blog list)</label><input type="text" id="post-excerpt"></div>
+      <div><label>Body (Markdown supported)</label><textarea id="post-body" required></textarea></div>
+      <div class="upload-row">
+        <label style="margin:0">Cover image</label>
+        <input type="file" id="post-cover-file" accept="image/*">
+        <img id="post-cover-preview" style="display:none">
+        <input type="hidden" id="post-cover-url">
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0">
+        <input type="checkbox" id="post-published" style="width:auto"> Published (visible to the public)
+      </label>
+      <div class="actions">
+        <button class="btn-mini primary" type="submit">Save Post</button>
+        <button class="btn-mini" type="button" id="post-cancel">Clear / New</button>
+        <span id="post-msg"></span>
+      </div>
+    </form>
+    <div class="admin-list" id="posts-list"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- PROJECTS -->
+  <div class="admin-panel" id="panel-projects">
+    <form class="admin-form" id="project-form">
+      <input type="hidden" id="project-id">
+      <div class="row2">
+        <div><label>Title</label><input type="text" id="project-title" required></div>
+        <div><label>Category (drives the filter buttons)</label><input type="text" id="project-category" placeholder="Web / Desktop / Research" required></div>
+      </div>
+      <div><label>Description</label><textarea id="project-description"></textarea></div>
+      <div class="row2">
+        <div><label>Tags (comma separated)</label><input type="text" id="project-tags" placeholder="Python, Supabase, JavaScript"></div>
+        <div><label>Link (GitHub repo, live site, etc.)</label><input type="text" id="project-link"></div>
+      </div>
+      <div class="upload-row">
+        <label style="margin:0">Cover image</label>
+        <input type="file" id="project-cover-file" accept="image/*">
+        <img id="project-cover-preview" style="display:none">
+        <input type="hidden" id="project-cover-url">
+      </div>
+      <div class="actions">
+        <button class="btn-mini primary" type="submit">Save Project</button>
+        <button class="btn-mini" type="button" id="project-cancel">Clear / New</button>
+        <span id="project-msg"></span>
+      </div>
+    </form>
+    <div class="admin-list" id="projects-list"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- RESEARCH -->
+  <div class="admin-panel" id="panel-research">
+    <form class="admin-form" id="research-form">
+      <input type="hidden" id="research-id">
+      <div class="row2">
+        <div><label>Title</label><input type="text" id="research-title" required></div>
+        <div><label>Venue</label><input type="text" id="research-venue" placeholder="ResearchGate / SSRN" required></div>
+      </div>
+      <div><label>Description / abstract</label><textarea id="research-description"></textarea></div>
+      <div class="row2">
+        <div><label>External link</label><input type="text" id="research-link"></div>
+        <div><label>Upload a file (PDF)</label><input type="file" id="research-file-file"><input type="hidden" id="research-file-url"></div>
+      </div>
+      <div class="upload-row">
+        <label style="margin:0">Cover image</label>
+        <input type="file" id="research-cover-file" accept="image/*">
+        <img id="research-cover-preview" style="display:none">
+        <input type="hidden" id="research-cover-url">
+      </div>
+      <div class="actions">
+        <button class="btn-mini primary" type="submit">Save Paper</button>
+        <button class="btn-mini" type="button" id="research-cancel">Clear / New</button>
+        <span id="research-msg"></span>
+      </div>
+    </form>
+    <div class="admin-list" id="research-list"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- BOOKS -->
+  <div class="admin-panel" id="panel-books">
+    <form class="admin-form" id="book-form">
+      <input type="hidden" id="book-id">
+      <div class="row2">
+        <div><label>Title</label><input type="text" id="book-title" required></div>
+        <div><label>Author</label><input type="text" id="book-author"></div>
+      </div>
+      <div class="row2">
+        <div><label>Shelf</label><input type="text" id="book-shelf" placeholder="Favorite / Reading now / To read" required></div>
+        <div><label>Rating (0–5)</label><select id="book-rating">
+          <option value="0">No rating</option><option value="1">1</option><option value="2">2</option>
+          <option value="3">3</option><option value="4">4</option><option value="5" selected>5</option>
+        </select></div>
+      </div>
+      <div><label>Description / notes</label><textarea id="book-description"></textarea></div>
+      <div class="row2">
+        <div><label>External link (Goodreads, etc.)</label><input type="text" id="book-link"></div>
+        <div><label>Upload a file (PDF, etc.)</label><input type="file" id="book-file-file"><input type="hidden" id="book-file-url"></div>
+      </div>
+      <div class="upload-row">
+        <label style="margin:0">Cover image</label>
+        <input type="file" id="book-cover-file" accept="image/*">
+        <img id="book-cover-preview" style="display:none">
+        <input type="hidden" id="book-cover-url">
+      </div>
+      <div class="actions">
+        <button class="btn-mini primary" type="submit">Save Book</button>
+        <button class="btn-mini" type="button" id="book-cancel">Clear / New</button>
+        <span id="book-msg"></span>
+      </div>
+    </form>
+    <div class="admin-list" id="books-list"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- COMMENTS -->
+  <div class="admin-panel" id="panel-comments">
+    <p style="color:var(--muted);font-size:14px;margin-bottom:16px">New comments are hidden from the public site until you approve them here.</p>
+    <div class="admin-list" id="comments-list"><div class="loading">Loading…</div></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/db.js"></script>
+<script src="assets/admin.js"></script>
+</body></html>

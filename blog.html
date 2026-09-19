@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Blog — Ivy B. Buncaras</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head><body>
+<nav><div class="wrap"><a class="brand" href="index.html">Ivy B. Buncaras</a>
+<div class="links"><a href="about.html">About</a><a href="projects.html">Projects</a><a href="research.html">Research</a><a href="library.html">Library</a><a href="blog.html">Blog</a><a href="contact.html">Contact</a></div></div></nav>
+<header class="page-hero"><div class="wrap">
+<div class="eyebrow">Blog &amp; Discussion</div>
+<h1>Notes &amp; Writing</h1>
+<p>Thoughts on public-sector systems, research, and whatever else is worth writing down.</p>
+</div></header>
+<section id="blog"><div class="wrap">
+<div class="grid" id="posts-grid"><div class="loading">Loading posts…</div></div>
+</div></section>
+<footer id="contact-footer">
+<div class="eyebrow" style="color:var(--gold-l)">Get in touch</div>
+<h2 style="font-size:30px;margin:12px 0 18px">Let's build something that lasts</h2>
+<div id="social"></div>
+<p style="font-size:13px;color:#9aa3c0;margin-top:24px">© <span id="yr"></span> Ivy B. Buncaras · Masbate, Philippines</p>
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/db.js"></script>
+<script src="assets/script.js"></script>
+<script>
+(async function(){
+  const grid = document.getElementById('posts-grid');
+  if(!dbReady()){ notConfiguredNotice(grid); return; }
+  try{
+    const posts = await fetchPublishedPosts();
+    if(!posts.length){ grid.innerHTML = '<div class="empty">No posts published yet — check back soon.</div>'; return; }
+    grid.innerHTML = posts.map(p => `
+      <a class="card reveal post-card" href="post.html?slug=${encodeURIComponent(p.slug)}">
+        ${p.cover_url ? `<img class="post-cover" src="${p.cover_url}" alt="">` : ''}
+        <div class="post-date">${fmtDate(p.created_at)}</div>
+        <h3>${escapeHtml(p.title)}</h3>
+        <p class="post-excerpt">${escapeHtml(p.excerpt || '')}</p>
+      </a>`).join('');
+    if(window.obs) obs();
+  }catch(e){
+    grid.innerHTML = `<div class="empty">Couldn't load posts right now.</div>`;
+    console.error(e);
+  }
+})();
+</script>
+</body></html>
