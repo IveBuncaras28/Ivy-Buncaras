@@ -12,9 +12,17 @@ const RESEARCH=[
 const SOCIAL=[{n:"GitHub",u:"#"},{n:"ResearchGate",u:"#"},{n:"SSRN",u:"#"},{n:"Email",u:"#"},{n:"LinkedIn",u:"#"}];
 /* ================================== */
 
+// Scroll-reveal observer — defined first so anything below can call it safely.
+let io;
+function obs(){
+  io=io||new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting){x.target.classList.add('in');io.unobserve(x.target);}}),{threshold:.12});
+  document.querySelectorAll('.reveal:not(.in)').forEach(el=>io.observe(el));
+}
+
+// Highlight the current page in the nav.
 document.querySelectorAll('.links a').forEach(a=>{
-  if(a.getAttribute('href')===location.pathname.split('/').pop()||
-     (a.getAttribute('href')==='index.html'&&(location.pathname.endsWith('/')||location.pathname.split('/').pop()==='')))
+  const here=location.pathname.split('/').pop();
+  if(a.getAttribute('href')===here||(a.getAttribute('href')==='index.html'&&(here===''||here==='index.html')))
     a.setAttribute('data-current','true');
 });
 
@@ -42,9 +50,4 @@ if(soc){
   soc.innerHTML=SOCIAL.map(s=>`<a href="${s.u}" ${s.u!=='#'?'target="_blank" rel="noopener"':''}>${s.n}</a>`).join('');
 }
 
-let io;
-function obs(){
-  io=io||new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting){x.target.classList.add('in');io.unobserve(x.target);}}),{threshold:.12});
-  document.querySelectorAll('.reveal:not(.in)').forEach(el=>io.observe(el));
-}
 obs();
