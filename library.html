@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="assets/style.css">
 </head><body>
 <nav><div class="wrap"><a class="brand" href="index.html">Ivy B. Buncaras</a>
-<div class="links"><a href="about.html">About</a><a href="projects.html">Projects</a><a href="research.html">Research</a><a href="library.html">Library</a><a href="contact.html">Contact</a></div></div></nav>
+<div class="links"><a href="about.html">About</a><a href="projects.html">Projects</a><a href="research.html">Research</a><a href="library.html">Library</a><a href="blog.html">Blog</a><a href="contact.html">Contact</a></div></div></nav>
 <header class="page-hero"><div class="wrap">
 <div class="eyebrow">Bookshelf</div>
 <h1>Library</h1>
@@ -14,8 +14,7 @@
 </div></header>
 <section id="library"><div class="wrap">
 <div class="filters reveal" id="lib-filters"></div>
-<div class="grid" id="library-grid"></div>
-<p class="note reveal" style="margin-top:34px">Tell me your actual favorite books and current reads, and I'll swap these placeholders for the real list.</p>
+<div class="grid" id="library-grid"><div class="loading">Loading books…</div></div>
 </div></section>
 <footer id="contact-footer">
 <div class="eyebrow" style="color:var(--gold-l)">Get in touch</div>
@@ -23,5 +22,40 @@
 <div id="social"></div>
 <p style="font-size:13px;color:#9aa3c0;margin-top:24px">© <span id="yr"></span> Ivy B. Buncaras · Masbate, Philippines</p>
 </footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/db.js"></script>
 <script src="assets/script.js"></script>
+<script>
+(async function(){
+  const grid = document.getElementById('library-grid');
+  const filtersEl = document.getElementById('lib-filters');
+  if(!dbReady()){ notConfiguredNotice(grid); return; }
+  let books = [];
+  try{ books = await fetchBooks(); }
+  catch(e){ grid.innerHTML = '<div class="empty">Couldn\'t load the library right now.</div>'; return; }
+  if(!books.length){ filtersEl.style.display='none'; grid.innerHTML = '<div class="empty">No books added yet.</div>'; return; }
+
+  const stars = n => Array.from({length:5},(_,i)=>`<span class="${i<n?'':'off'}">★</span>`).join('');
+  const bookCard = b => `<article class="card reveal book"><div class="book-spine"></div><div>
+      ${b.cover_url ? `<img src="${b.cover_url}" alt="" style="width:64px;height:92px;object-fit:cover;border-radius:2px;float:right;margin-left:12px">` : ''}
+      <span class="shelf-badge">${escapeHtml(b.shelf)}</span>
+      ${b.rating ? `<div class="stars">${stars(b.rating)}</div>` : ''}
+      <h3>${escapeHtml(b.title)}</h3>
+      ${b.author ? `<div class="author">${escapeHtml(b.author)}</div>` : ''}
+      <p>${escapeHtml(b.description||'')}</p>
+      ${b.file_url ? `<a class="more" href="${b.file_url}" target="_blank" rel="noopener">Download →</a> ` : ''}
+      ${b.link_url ? `<a class="more" href="${b.link_url}" target="_blank" rel="noopener">More →</a>` : ''}
+    </div></article>`;
+
+  const render = f => { grid.innerHTML = books.filter(b=>f==='All'||b.shelf===f).map(bookCard).join(''); if(window.obs) obs(); };
+  const shelves = ['All', ...new Set(books.map(b=>b.shelf))];
+  filtersEl.innerHTML = shelves.map((s,i)=>`<button class="${i?'':'on'}">${escapeHtml(s)}</button>`).join('');
+  filtersEl.querySelectorAll('button').forEach(btn => btn.onclick = () => {
+    filtersEl.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+    btn.classList.add('on'); render(btn.textContent);
+  });
+  render('All');
+})();
+</script>
 </body></html>
