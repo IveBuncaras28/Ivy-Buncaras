@@ -68,7 +68,7 @@ footer a:hover{color:#fff}
 .book{display:flex;gap:16px;align-items:flex-start}
 .book-spine{flex:0 0 10px;align-self:stretch;border-radius:2px;background:linear-gradient(180deg,var(--gold),var(--gold-l))}
 .book h3{font-size:20px;margin-bottom:2px}
-.book .author{font-size:13px;color:var(--muted);margin-bottom:8px;font-style:italic}
+.book .author,.author{font-size:13px;color:var(--muted);margin-bottom:8px;font-style:italic}
 .stars{color:var(--gold);letter-spacing:2px;font-size:13px;margin-bottom:10px}
 .stars .off{color:var(--line)}
 .shelf-badge{display:inline-block;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:99px;border:1px solid var(--line);color:var(--gold);margin-bottom:10px}
@@ -189,4 +189,27 @@ footer a:hover{color:#fff}
 .upload-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .upload-row img{height:56px;width:56px;object-fit:cover;border-radius:3px;border:1px solid var(--line);box-shadow:0 4px 12px rgba(0,0,0,.08)}
 .loading{text-align:center;color:var(--muted);padding:30px 0;font-size:14px}
+.stat-hero{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:38px;text-align:center;position:relative;overflow:hidden}
+.stat-hero:before{content:"";position:absolute;left:0;top:0;height:3px;width:100%;background:linear-gradient(90deg,var(--gold),var(--gold-l))}
+.stat-hero span{display:block;font-family:"Cormorant Garamond",serif;font-size:64px;font-weight:700;color:var(--gold);line-height:1}
+.stat-hero label{display:block;margin-top:8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+/* ---- dashboard: indicators + headlines ---- */
+.indicator-card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:26px;position:relative;overflow:hidden;transition:transform .3s,box-shadow .3s}
+.indicator-card:before{content:"";position:absolute;left:0;top:0;height:3px;width:0;background:linear-gradient(90deg,var(--gold),var(--gold-l));transition:width .4s}
+.indicator-card:hover{transform:translateY(-4px);box-shadow:0 16px 36px rgba(23,34,74,.12)}
+.indicator-card:hover:before{width:100%}
+.indicator-card .cat{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+.indicator-card .val{font-family:"Cormorant Garamond",serif;font-size:44px;font-weight:700;line-height:1;color:var(--ink)}
+.indicator-card .lbl{font-size:14.5px;font-weight:600;margin:8px 0 4px}
+.indicator-card .sub{font-size:13px;color:var(--muted);margin-bottom:14px}
+.indicator-card .src{font-size:11px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+.indicator-card .src a{color:var(--gold);text-decoration:none}
+.indicator-card .src a:hover{text-decoration:underline}
+.headline-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:18px 0;border-bottom:1px solid var(--line)}
+.headline-row:last-child{border-bottom:none}
+.headline-row a.htitle{font-size:15.5px;font-weight:600;color:var(--ink);text-decoration:none;line-height:1.4}
+.headline-row a.htitle:hover{color:var(--gold)}
+.headline-row .hmeta{font-size:12px;color:var(--muted);margin-top:5px}
+.headline-row .hgo{flex-shrink:0;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);text-decoration:none;white-space:nowrap;margin-top:2px}
 @media(max-width:640px){.admin-form .row2{grid-template-columns:1fr}}
