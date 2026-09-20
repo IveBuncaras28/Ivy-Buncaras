@@ -31,6 +31,12 @@
 <div class="stat"><b>Masbate, Philippines</b><span>Working locally, designing for national scale</span></div>
 </div>
 </div></div></section>
+
+<section id="trainings" class="alt"><div class="wrap">
+<div class="sec-h reveal"><div class="eyebrow">Certifications</div><h2>Trainings &amp; Seminars</h2><div class="rule"></div></div>
+<div class="grid" id="trainings-grid"><div class="loading">Loading trainings…</div></div>
+</div></section>
+
 <footer id="contact-footer">
 <div class="eyebrow" style="color:var(--gold-l)">Get in touch</div>
 <h2 style="font-size:30px;margin:12px 0 18px">Let's build something that lasts</h2>
@@ -38,4 +44,29 @@
 <p style="font-size:13px;color:#9aa3c0;margin-top:24px">© <span id="yr"></span> Ivy B. Buncaras · Masbate, Philippines</p>
 </footer>
 <script src="assets/script.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/db.js"></script>
+<script>
+(async function(){
+  const grid = document.getElementById('trainings-grid');
+  if(!dbReady()){ notConfiguredNotice(grid); return; }
+  let trainings = [];
+  try{ trainings = await fetchTrainings(); }
+  catch(e){ grid.innerHTML = '<div class="empty">Couldn\'t load trainings right now.</div>'; return; }
+  if(!trainings.length){ grid.innerHTML = '<div class="empty">No trainings added yet.</div>'; return; }
+
+  grid.innerHTML = trainings.map(t => `
+    <article class="card reveal">
+      ${t.cover_url ? `<img src="${t.cover_url}" alt="" style="width:100%;border-radius:2px;margin-bottom:14px">` : ''}
+      ${t.date_label ? `<div class="chips"><span class="chip">${escapeHtml(t.date_label)}</span></div>` : ''}
+      <h3>${escapeHtml(t.title)}</h3>
+      ${t.provider ? `<div class="author">${escapeHtml(t.provider)}</div>` : ''}
+      <p>${escapeHtml(t.description||'')}</p>
+      ${t.file_url ? `<a class="more" href="${t.file_url}" target="_blank" rel="noopener">Certificate →</a> ` : ''}
+      ${t.link_url ? `<a class="more" href="${t.link_url}" target="_blank" rel="noopener">Verify →</a>` : ''}
+    </article>`).join('');
+  if(window.obs) obs();
+})();
+</script>
 </body></html>
