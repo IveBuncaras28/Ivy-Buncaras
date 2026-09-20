@@ -42,6 +42,7 @@
     <button data-tab="posts" class="on">Posts</button>
     <button data-tab="projects">Projects</button>
     <button data-tab="research">Research</button>
+    <button data-tab="trainings">Trainings</button>
     <button data-tab="books">Library</button>
     <button data-tab="comments">Comments</button>
   </div>
@@ -134,6 +135,39 @@
     </form>
     <div class="panel-head"><h2>All Research</h2></div>
     <div class="admin-list" id="research-list"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- TRAININGS -->
+  <div class="admin-panel" id="panel-trainings">
+    <div class="panel-head"><h2>New / Edit Training</h2><p>Certifications, workshops, and seminars — shown on your About page.</p></div>
+    <form class="admin-form" id="training-form">
+      <input type="hidden" id="training-id">
+      <div class="row2">
+        <div><label>Title</label><input type="text" id="training-title" required></div>
+        <div><label>Provider / organizer</label><input type="text" id="training-provider"></div>
+      </div>
+      <div class="row2">
+        <div><label>Date (free text)</label><input type="text" id="training-date" placeholder="March 2024 or 2022–2023"></div>
+        <div><label>External link (verification, etc.)</label><input type="text" id="training-link"></div>
+      </div>
+      <div><label>Description</label><textarea id="training-description"></textarea></div>
+      <div class="row2">
+        <div><label>Upload certificate (PDF/image)</label><input type="file" id="training-file-file"><input type="hidden" id="training-file-url"></div>
+        <div class="upload-row" style="margin-top:20px">
+          <label style="margin:0">Cover image</label>
+          <input type="file" id="training-cover-file" accept="image/*">
+          <img id="training-cover-preview" style="display:none">
+          <input type="hidden" id="training-cover-url">
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn-mini primary" type="submit">Save Training</button>
+        <button class="btn-mini" type="button" id="training-cancel">Clear / New</button>
+        <span id="training-msg"></span>
+      </div>
+    </form>
+    <div class="panel-head"><h2>All Trainings</h2></div>
+    <div class="admin-list" id="trainings-list"><div class="loading">Loading…</div></div>
   </div>
 
   <!-- BOOKS -->
