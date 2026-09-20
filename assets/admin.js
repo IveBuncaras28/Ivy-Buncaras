@@ -43,6 +43,7 @@ async function init(){
   setupProjects();
   setupResearch();
   setupTrainings();
+  setupPHDashboard();
   setupBooks();
   setupComments();
 }
@@ -52,7 +53,7 @@ function showDashboard(email){
   loginScreen.style.display='none'; dashboard.style.display='block';
   const who=document.getElementById('who-email');
   if(who && email) who.textContent = email;
-  loadPosts(); loadProjects(); loadResearch(); loadTrainings(); loadBooks(); loadComments(); loadVisits();
+  loadPosts(); loadProjects(); loadResearch(); loadTrainings(); loadIndicators(); loadHeadlines(); loadBooks(); loadComments(); loadVisits();
 }
 
 function slugify(s){
@@ -453,6 +454,131 @@ window.deleteTraining = async function(id){
   if(!confirm('Delete this training permanently?')) return;
   await sb.from('trainings').delete().eq('id', id);
   loadTrainings();
+};
+
+/* ---------------- PH DASHBOARD (indicators + headlines) ---------------- */
+function setupPHDashboard(){
+  document.getElementById('indicator-cancel').addEventListener('click', resetIndicatorForm);
+  document.getElementById('indicator-form').addEventListener('submit', async (ev)=>{
+    ev.preventDefault();
+    const msg = document.getElementById('indicator-msg');
+    const id = document.getElementById('indicator-id').value;
+    const row = {
+      category: document.getElementById('indicator-category').value.trim(),
+      period: document.getElementById('indicator-period').value.trim() || null,
+      label: document.getElementById('indicator-label').value.trim(),
+      value: document.getElementById('indicator-value').value.trim(),
+      sublabel: document.getElementById('indicator-sublabel').value.trim() || null,
+      source_label: document.getElementById('indicator-source-label').value.trim() || null,
+      source_url: document.getElementById('indicator-source-url').value.trim() || null
+    };
+    try{
+      const { error } = id ? await sb.from('indicators').update(row).eq('id', id) : await sb.from('indicators').insert(row);
+      if(error) throw error;
+      msg.innerHTML = '<div class="msg ok">Saved.</div>';
+      resetIndicatorForm(); loadIndicators();
+    }catch(e){ msg.innerHTML = `<div class="msg err">${escapeHtml(e.message)}</div>`; }
+  });
+
+  document.getElementById('headline-cancel').addEventListener('click', resetHeadlineForm);
+  document.getElementById('headline-form').addEventListener('submit', async (ev)=>{
+    ev.preventDefault();
+    const msg = document.getElementById('headline-msg');
+    const id = document.getElementById('headline-id').value;
+    const row = {
+      title: document.getElementById('headline-title').value.trim(),
+      source_label: document.getElementById('headline-source-label').value.trim() || null,
+      published_date: document.getElementById('headline-date').value.trim() || null,
+      source_url: document.getElementById('headline-url').value.trim()
+    };
+    try{
+      const { error } = id ? await sb.from('headlines').update(row).eq('id', id) : await sb.from('headlines').insert(row);
+      if(error) throw error;
+      msg.innerHTML = '<div class="msg ok">Saved.</div>';
+      resetHeadlineForm(); loadHeadlines();
+    }catch(e){ msg.innerHTML = `<div class="msg err">${escapeHtml(e.message)}</div>`; }
+  });
+}
+
+function resetIndicatorForm(){
+  document.getElementById('indicator-form').reset();
+  document.getElementById('indicator-id').value = '';
+  document.getElementById('indicator-msg').textContent = '';
+}
+
+async function loadIndicators(){
+  const list = document.getElementById('indicators-list');
+  const { data, error } = await sb.from('indicators').select('*').order('sort_order', {ascending:true});
+  if(error){ list.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`; return; }
+  if(!data.length){ list.innerHTML = '<div class="empty">No indicators yet — add your first one above.</div>'; return; }
+  list.innerHTML = data.map(i => `
+    <div class="admin-row">
+      <div class="info"><b>${escapeHtml(i.label)} — ${escapeHtml(i.value)}</b><span>${escapeHtml(i.category)}${i.period?` · ${escapeHtml(i.period)}`:''}</span></div>
+      <div class="btns">
+        <button class="btn-mini" onclick="editIndicator('${i.id}')">Edit</button>
+        <button class="btn-mini danger" onclick="deleteIndicator('${i.id}')">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+window.editIndicator = async function(id){
+  const { data } = await sb.from('indicators').select('*').eq('id', id).single();
+  if(!data) return;
+  document.getElementById('indicator-id').value = data.id;
+  document.getElementById('indicator-category').value = data.category;
+  document.getElementById('indicator-period').value = data.period || '';
+  document.getElementById('indicator-label').value = data.label;
+  document.getElementById('indicator-value').value = data.value;
+  document.getElementById('indicator-sublabel').value = data.sublabel || '';
+  document.getElementById('indicator-source-label').value = data.source_label || '';
+  document.getElementById('indicator-source-url').value = data.source_url || '';
+  document.querySelector('[data-tab="phdashboard"]').click();
+  window.scrollTo({top:0, behavior:'smooth'});
+};
+
+window.deleteIndicator = async function(id){
+  if(!confirm('Delete this indicator permanently?')) return;
+  await sb.from('indicators').delete().eq('id', id);
+  loadIndicators();
+};
+
+function resetHeadlineForm(){
+  document.getElementById('headline-form').reset();
+  document.getElementById('headline-id').value = '';
+  document.getElementById('headline-msg').textContent = '';
+}
+
+async function loadHeadlines(){
+  const list = document.getElementById('headlines-list-admin');
+  const { data, error } = await sb.from('headlines').select('*').order('sort_order', {ascending:true}).order('created_at', {ascending:false});
+  if(error){ list.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`; return; }
+  if(!data.length){ list.innerHTML = '<div class="empty">No headlines yet — add your first one above.</div>'; return; }
+  list.innerHTML = data.map(h => `
+    <div class="admin-row">
+      <div class="info"><b>${escapeHtml(h.title)}</b><span>${escapeHtml(h.source_label||'')}${h.published_date?` · ${escapeHtml(h.published_date)}`:''}</span></div>
+      <div class="btns">
+        <button class="btn-mini" onclick="editHeadline('${h.id}')">Edit</button>
+        <button class="btn-mini danger" onclick="deleteHeadline('${h.id}')">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+window.editHeadline = async function(id){
+  const { data } = await sb.from('headlines').select('*').eq('id', id).single();
+  if(!data) return;
+  document.getElementById('headline-id').value = data.id;
+  document.getElementById('headline-title').value = data.title;
+  document.getElementById('headline-source-label').value = data.source_label || '';
+  document.getElementById('headline-date').value = data.published_date || '';
+  document.getElementById('headline-url').value = data.source_url;
+  document.querySelector('[data-tab="phdashboard"]').click();
+  window.scrollTo({top:0, behavior:'smooth'});
+};
+
+window.deleteHeadline = async function(id){
+  if(!confirm('Delete this headline permanently?')) return;
+  await sb.from('headlines').delete().eq('id', id);
+  loadHeadlines();
 };
 
 /* ---------------- BOOKS ---------------- */
