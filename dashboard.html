@@ -14,6 +14,7 @@
 </div></header>
 
 <section id="indicators"><div class="wrap">
+<div class="filters reveal" id="ind-filters" style="display:none"></div>
 <div class="grid" id="indicators-grid"><div class="loading">Loading indicators…</div></div>
 </div></section>
 
@@ -37,20 +38,31 @@
 <script>
 (async function(){
   const grid=document.getElementById('indicators-grid');
+  const filtersEl=document.getElementById('ind-filters');
   const list=document.getElementById('headlines-list');
   if(!dbReady()){ notConfiguredNotice(grid); notConfiguredNotice(list); return; }
 
   try{
     const items = await fetchIndicators();
     if(!items.length){ grid.innerHTML='<div class="empty">No indicators added yet.</div>'; }
-    else grid.innerHTML = items.map(i => `
-      <div class="indicator-card reveal">
-        <div class="cat">${escapeHtml(i.category)}${i.period?` · ${escapeHtml(i.period)}`:''}</div>
-        <div class="val">${escapeHtml(i.value)}</div>
-        <div class="lbl">${escapeHtml(i.label)}</div>
-        ${i.sublabel?`<div class="sub">${escapeHtml(i.sublabel)}</div>`:''}
-        ${i.source_label?`<div class="src">Source: ${i.source_url?`<a href="${i.source_url}" target="_blank" rel="noopener">${escapeHtml(i.source_label)}</a>`:escapeHtml(i.source_label)}</div>`:''}
-      </div>`).join('');
+    else{
+      const card=i => `
+        <div class="indicator-card reveal" data-c="${escapeHtml(i.category)}">
+          <div class="cat">${escapeHtml(i.category)}${i.period?` · ${escapeHtml(i.period)}`:''}</div>
+          <div class="val">${escapeHtml(i.value)}</div>
+          <div class="lbl">${escapeHtml(i.label)}</div>
+          ${i.sublabel?`<div class="sub">${escapeHtml(i.sublabel)}</div>`:''}
+          ${i.source_label?`<div class="src">Source: ${i.source_url?`<a href="${i.source_url}" target="_blank" rel="noopener">${escapeHtml(i.source_label)}</a>`:escapeHtml(i.source_label)}</div>`:''}
+        </div>`;
+      const render=f=>{ grid.innerHTML=items.filter(i=>f==='All'||i.category===f).map(card).join(''); if(window.obs) obs(); };
+      const cats=['All',...new Set(items.map(i=>i.category))];
+      if(cats.length>2){
+        filtersEl.style.display='flex';
+        filtersEl.innerHTML=cats.map((c,idx)=>`<button class="${idx?'':'on'}">${escapeHtml(c)}</button>`).join('');
+        filtersEl.querySelectorAll('button').forEach(b=>b.onclick=()=>{filtersEl.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');render(b.textContent);});
+      }
+      render('All');
+    }
   }catch(e){ grid.innerHTML = `<div class="empty">Couldn't load indicators: ${escapeHtml(e.message)}</div>`; }
 
   try{
