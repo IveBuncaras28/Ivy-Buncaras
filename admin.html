@@ -44,6 +44,7 @@
     <button data-tab="research">Research</button>
     <button data-tab="trainings">Trainings</button>
     <button data-tab="books">Library</button>
+    <button data-tab="phdashboard">PH Dashboard</button>
     <button data-tab="comments">Comments</button>
     <button data-tab="visits">Visits</button>
   </div>
@@ -169,6 +170,52 @@
     </form>
     <div class="panel-head"><h2>All Trainings</h2></div>
     <div class="admin-list" id="trainings-list"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- PH DASHBOARD -->
+  <div class="admin-panel" id="panel-phdashboard">
+    <div class="panel-head"><h2>New / Edit Indicator</h2><p>These show as stat cards on your public Dashboard page.</p></div>
+    <form class="admin-form" id="indicator-form">
+      <input type="hidden" id="indicator-id">
+      <div class="row2">
+        <div><label>Category</label><input type="text" id="indicator-category" placeholder="Enrollment / Reading / Poverty / Employment / Unemployment / Incidents" required></div>
+        <div><label>Period</label><input type="text" id="indicator-period" placeholder="e.g. July 2026 or SY 2025–2026"></div>
+      </div>
+      <div><label>Label</label><input type="text" id="indicator-label" placeholder="e.g. Unemployment Rate" required></div>
+      <div class="row2">
+        <div><label>Value</label><input type="text" id="indicator-value" placeholder="e.g. 6.0% or 24.9M" required></div>
+        <div><label>Sublabel (short context)</label><input type="text" id="indicator-sublabel" placeholder="e.g. ≈3.14M unemployed"></div>
+      </div>
+      <div class="row2">
+        <div><label>Source label</label><input type="text" id="indicator-source-label" placeholder="e.g. PSA Labor Force Survey"></div>
+        <div><label>Source URL</label><input type="text" id="indicator-source-url"></div>
+      </div>
+      <div class="actions">
+        <button class="btn-mini primary" type="submit">Save Indicator</button>
+        <button class="btn-mini" type="button" id="indicator-cancel">Clear / New</button>
+        <span id="indicator-msg"></span>
+      </div>
+    </form>
+    <div class="panel-head"><h2>All Indicators</h2></div>
+    <div class="admin-list" id="indicators-list"><div class="loading">Loading…</div></div>
+
+    <div class="panel-head" style="margin-top:44px"><h2>New / Edit Headline</h2><p>Curated education news links, shown on your public Dashboard page.</p></div>
+    <form class="admin-form" id="headline-form">
+      <input type="hidden" id="headline-id">
+      <div><label>Title</label><input type="text" id="headline-title" required></div>
+      <div class="row2">
+        <div><label>Source (publication)</label><input type="text" id="headline-source-label" placeholder="e.g. Rappler"></div>
+        <div><label>Date</label><input type="text" id="headline-date" placeholder="e.g. June 2026"></div>
+      </div>
+      <div><label>Article URL</label><input type="text" id="headline-url" required></div>
+      <div class="actions">
+        <button class="btn-mini primary" type="submit">Save Headline</button>
+        <button class="btn-mini" type="button" id="headline-cancel">Clear / New</button>
+        <span id="headline-msg"></span>
+      </div>
+    </form>
+    <div class="panel-head"><h2>All Headlines</h2></div>
+    <div class="admin-list" id="headlines-list-admin"><div class="loading">Loading…</div></div>
   </div>
 
   <!-- BOOKS -->
