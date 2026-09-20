@@ -69,3 +69,10 @@ async function fetchResearch(){
   if(error) throw error;
   return data;
 }
+
+async function fetchTrainings(){
+  const { data, error } = await window.supabaseClient
+    .from('trainings').select('*').order('sort_order', {ascending:true}).order('created_at', {ascending:false});
+  if(error) throw error;
+  return data;
+}
