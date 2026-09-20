@@ -76,3 +76,32 @@ async function fetchTrainings(){
   if(error) throw error;
   return data;
 }
+
+// Logs one page view. Silent no-op if not configured or if it fails —
+// a tracking hiccup should never break the page for a visitor.
+async function trackVisit(){
+  if(!dbReady()) return;
+  try{
+    await window.supabaseClient.from('site_visits').insert({
+      page: location.pathname.split('/').pop() || 'index.html',
+      referrer: document.referrer || null
+    });
+  }catch(e){ /* ignore */ }
+}
+
+// Admin-only: total visit count plus a per-page breakdown.
+async function fetchVisitStats(){
+  const { count, error: countErr } = await window.supabaseClient
+    .from('site_visits').select('*', { count: 'exact', head: true });
+  if(countErr) throw countErr;
+
+  const { data: rows, error: rowsErr } = await window.supabaseClient
+    .from('site_visits').select('page').limit(5000);
+  if(rowsErr) throw rowsErr;
+
+  const byPage = {};
+  (rows||[]).forEach(r=>{ const p=r.page||'(unknown)'; byPage[p]=(byPage[p]||0)+1; });
+  const breakdown = Object.entries(byPage).sort((a,b)=>b[1]-a[1]);
+
+  return { total: count||0, breakdown };
+}
