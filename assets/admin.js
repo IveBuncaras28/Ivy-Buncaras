@@ -42,6 +42,7 @@ async function init(){
   setupPosts();
   setupProjects();
   setupResearch();
+  setupTrainings();
   setupBooks();
   setupComments();
 }
@@ -51,7 +52,7 @@ function showDashboard(email){
   loginScreen.style.display='none'; dashboard.style.display='block';
   const who=document.getElementById('who-email');
   if(who && email) who.textContent = email;
-  loadPosts(); loadProjects(); loadResearch(); loadBooks(); loadComments();
+  loadPosts(); loadProjects(); loadResearch(); loadTrainings(); loadBooks(); loadComments();
 }
 
 function slugify(s){
@@ -350,6 +351,108 @@ window.deleteResearch = async function(id){
   if(!confirm('Delete this paper permanently?')) return;
   await sb.from('research').delete().eq('id', id);
   loadResearch();
+};
+
+/* ---------------- TRAININGS ---------------- */
+function setupTrainings(){
+  document.getElementById('training-cover-file').addEventListener('change', async (ev)=>{
+    const file = ev.target.files[0]; if(!file) return;
+    const msg = document.getElementById('training-msg');
+    msg.textContent = 'Uploading…';
+    try{
+      const url = await uploadFile(file, 'training-covers');
+      document.getElementById('training-cover-url').value = url;
+      const img = document.getElementById('training-cover-preview');
+      img.src = url; img.style.display='inline-block';
+      msg.textContent = '';
+    }catch(e){ msg.innerHTML = `<div class="msg err">Upload failed: ${escapeHtml(e.message)}</div>`; }
+  });
+
+  document.getElementById('training-file-file').addEventListener('change', async (ev)=>{
+    const file = ev.target.files[0]; if(!file) return;
+    const msg = document.getElementById('training-msg');
+    msg.textContent = 'Uploading…';
+    try{
+      const url = await uploadFile(file, 'training-files');
+      document.getElementById('training-file-url').value = url;
+      msg.innerHTML = `<div class="msg ok">Certificate attached.</div>`;
+    }catch(e){ msg.innerHTML = `<div class="msg err">Upload failed: ${escapeHtml(e.message)}</div>`; }
+  });
+
+  document.getElementById('training-cancel').addEventListener('click', resetTrainingForm);
+
+  document.getElementById('training-form').addEventListener('submit', async (ev)=>{
+    ev.preventDefault();
+    const msg = document.getElementById('training-msg');
+    const id = document.getElementById('training-id').value;
+    const row = {
+      title: document.getElementById('training-title').value.trim(),
+      provider: document.getElementById('training-provider').value.trim(),
+      date_label: document.getElementById('training-date').value.trim(),
+      description: document.getElementById('training-description').value.trim(),
+      link_url: document.getElementById('training-link').value.trim() || null,
+      cover_url: document.getElementById('training-cover-url').value || null,
+      file_url: document.getElementById('training-file-url').value || null
+    };
+    try{
+      if(id){
+        const { error } = await sb.from('trainings').update(row).eq('id', id);
+        if(error) throw error;
+      }else{
+        const { error } = await sb.from('trainings').insert(row);
+        if(error) throw error;
+      }
+      msg.innerHTML = '<div class="msg ok">Saved.</div>';
+      resetTrainingForm(); loadTrainings();
+    }catch(e){ msg.innerHTML = `<div class="msg err">${escapeHtml(e.message)}</div>`; }
+  });
+}
+
+function resetTrainingForm(){
+  document.getElementById('training-form').reset();
+  document.getElementById('training-id').value = '';
+  document.getElementById('training-cover-url').value = '';
+  document.getElementById('training-file-url').value = '';
+  document.getElementById('training-cover-preview').style.display = 'none';
+  document.getElementById('training-msg').textContent = '';
+}
+
+async function loadTrainings(){
+  const list = document.getElementById('trainings-list');
+  const { data, error } = await sb.from('trainings').select('*').order('created_at', {ascending:false});
+  if(error){ list.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`; return; }
+  if(!data.length){ list.innerHTML = '<div class="empty">No trainings yet — add your first one above.</div>'; return; }
+  list.innerHTML = data.map(t => `
+    <div class="admin-row">
+      <div class="info"><b>${escapeHtml(t.title)}</b><span>${escapeHtml(t.provider||'')}${t.date_label?' · '+escapeHtml(t.date_label):''}</span></div>
+      <div class="btns">
+        <button class="btn-mini" onclick="editTraining('${t.id}')">Edit</button>
+        <button class="btn-mini danger" onclick="deleteTraining('${t.id}')">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+window.editTraining = async function(id){
+  const { data } = await sb.from('trainings').select('*').eq('id', id).single();
+  if(!data) return;
+  document.getElementById('training-id').value = data.id;
+  document.getElementById('training-title').value = data.title;
+  document.getElementById('training-provider').value = data.provider || '';
+  document.getElementById('training-date').value = data.date_label || '';
+  document.getElementById('training-link').value = data.link_url || '';
+  document.getElementById('training-description').value = data.description || '';
+  document.getElementById('training-cover-url').value = data.cover_url || '';
+  document.getElementById('training-file-url').value = data.file_url || '';
+  const img = document.getElementById('training-cover-preview');
+  if(data.cover_url){ img.src = data.cover_url; img.style.display='inline-block'; } else { img.style.display='none'; }
+  document.querySelector('[data-tab="trainings"]').click();
+  window.scrollTo({top:0, behavior:'smooth'});
+};
+
+window.deleteTraining = async function(id){
+  if(!confirm('Delete this training permanently?')) return;
+  await sb.from('trainings').delete().eq('id', id);
+  loadTrainings();
 };
 
 /* ---------------- BOOKS ---------------- */
