@@ -105,3 +105,17 @@ async function fetchVisitStats(){
 
   return { total: count||0, breakdown };
 }
+
+async function fetchIndicators(){
+  const { data, error } = await window.supabaseClient
+    .from('indicators').select('*').order('sort_order', {ascending:true}).order('created_at', {ascending:true});
+  if(error) throw error;
+  return data;
+}
+
+async function fetchHeadlines(){
+  const { data, error } = await window.supabaseClient
+    .from('headlines').select('*').order('sort_order', {ascending:true}).order('created_at', {ascending:false});
+  if(error) throw error;
+  return data;
+}
