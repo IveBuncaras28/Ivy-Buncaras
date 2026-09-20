@@ -52,7 +52,7 @@ function showDashboard(email){
   loginScreen.style.display='none'; dashboard.style.display='block';
   const who=document.getElementById('who-email');
   if(who && email) who.textContent = email;
-  loadPosts(); loadProjects(); loadResearch(); loadTrainings(); loadBooks(); loadComments();
+  loadPosts(); loadProjects(); loadResearch(); loadTrainings(); loadBooks(); loadComments(); loadVisits();
 }
 
 function slugify(s){
@@ -589,3 +589,25 @@ window.deleteComment = async function(id){
   await sb.from('comments').delete().eq('id', id);
   loadComments();
 };
+
+/* ---------------- VISITS ---------------- */
+async function loadVisits(){
+  const totalEl = document.getElementById('visits-total');
+  const list = document.getElementById('visits-breakdown');
+  try{
+    const { total, breakdown } = await fetchVisitStats();
+    totalEl.textContent = total.toLocaleString();
+    if(!breakdown.length){
+      list.innerHTML = '<div class="empty">No visits logged yet.</div>';
+      return;
+    }
+    list.innerHTML = breakdown.map(([page,n]) => `
+      <div class="admin-row">
+        <div class="info"><b>${escapeHtml(page)}</b></div>
+        <div class="btns"><span class="badge live">${n.toLocaleString()} view${n===1?'':'s'}</span></div>
+      </div>`).join('');
+  }catch(e){
+    totalEl.textContent = '–';
+    list.innerHTML = `<div class="empty">${escapeHtml(e.message)}</div>`;
+  }
+}
