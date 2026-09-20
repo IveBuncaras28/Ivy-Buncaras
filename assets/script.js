@@ -1,5 +1,5 @@
 /* ===== EDIT YOUR CONTENT HERE ===== */
-const SOCIAL=[{n:"GitHub",u:"#"},{n:"ResearchGate",u:"#"},{n:"SSRN",u:"#"},{n:"Email",u:"#"},{n:"LinkedIn",u:"#"}];
+const SOCIAL=[{n:"GitHub",u:"https://github.com/IveBuncaras28"},{n:"ResearchGate",u:"https://www.researchgate.net/profile/Ivy-Buncaras-2?ev=hdr_xprf"},{n:"SSRN",u:"https://www.ssrn.com/ssrn/"},{n:"Email",u:"#"},{n:"LinkedIn",u:"#"}];
 /* ================================== */
 
 // Scroll-reveal observer — defined first so anything below can call it safely.
