@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="assets/style.css">
 </head><body>
 <nav><div class="wrap"><a class="brand" href="index.html">Ivy B. Buncaras</a>
-<div class="links"><a href="about.html">About</a><a href="projects.html">Projects</a><a href="research.html">Research</a><a href="library.html">Library</a><a href="dashboard.html">Dashboard PH</a><a href="blog.html">Blog</a><a href="contact.html">Contact</a></div></div></nav>
+<div class="links"><a href="about.html">About</a><a href="projects.html">Projects</a><a href="research.html">Research</a><a href="library.html">Library</a><a href="dashboard.html">Dashboard</a><a href="blog.html">Blog</a><a href="contact.html">Contact</a></div></div></nav>
 <header class="page-hero"><div class="wrap">
 <div class="eyebrow">Bookshelf</div>
 <h1>Library</h1>
@@ -37,8 +37,8 @@
   if(!books.length){ filtersEl.style.display='none'; grid.innerHTML = '<div class="empty">No books added yet.</div>'; return; }
 
   const stars = n => Array.from({length:5},(_,i)=>`<span class="${i<n?'':'off'}">★</span>`).join('');
-  const bookCard = b => `<article class="card reveal book"><div class="book-spine"></div><div>
-      ${b.cover_url ? `<img src="${b.cover_url}" alt="" style="width:64px;height:92px;object-fit:cover;border-radius:2px;float:right;margin-left:12px">` : ''}
+  const bookCard = b => `<article class="card reveal book">
+      ${b.cover_url ? `<img src="${b.cover_url}" alt="" class="book-cover">` : ''}
       <span class="shelf-badge">${escapeHtml(b.shelf)}</span>
       ${b.rating ? `<div class="stars">${stars(b.rating)}</div>` : ''}
       <h3>${escapeHtml(b.title)}</h3>
@@ -46,7 +46,7 @@
       <p>${escapeHtml(b.description||'')}</p>
       ${b.file_url ? `<a class="more" href="${b.file_url}" target="_blank" rel="noopener">Download →</a> ` : ''}
       ${b.link_url ? `<a class="more" href="${b.link_url}" target="_blank" rel="noopener">More →</a>` : ''}
-    </div></article>`;
+    </article>`;
 
   const render = f => { grid.innerHTML = books.filter(b=>f==='All'||b.shelf===f).map(bookCard).join(''); if(window.obs) obs(); };
   const shelves = ['All', ...new Set(books.map(b=>b.shelf))];
