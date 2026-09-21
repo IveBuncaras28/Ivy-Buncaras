@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="assets/style.css">
 </head><body>
 <nav><div class="wrap"><a class="brand" href="index.html">Ivy B. Buncaras</a>
-<div class="links"><a href="about.html">About</a><a href="projects.html">Projects</a><a href="research.html">Research</a><a href="library.html">Library</a><a href="dashboard.html">Dashboard PH</a><a href="blog.html">Blog</a><a href="contact.html">Contact</a></div></div></nav>
+<div class="links"><a href="about.html">About</a><a href="projects.html">Projects</a><a href="research.html">Research</a><a href="library.html">Library</a><a href="dashboard.html">Dashboard</a><a href="blog.html">Blog</a><a href="contact.html">Contact</a></div></div></nav>
 <header class="page-hero"><div class="wrap">
 <div class="eyebrow">Philippines at a Glance</div>
 <h1>Education &amp; Development Dashboard</h1>
@@ -66,7 +66,7 @@
   }catch(e){ grid.innerHTML = `<div class="empty">Couldn't load indicators: ${escapeHtml(e.message)}</div>`; }
 
   try{
-    const heads = await fetchHeadlines();
+    const heads = (await fetchHeadlines()).slice(0, 10);
     if(!heads.length){ list.innerHTML='<div class="empty">No headlines added yet.</div>'; }
     else list.innerHTML = heads.map(h => `
       <div class="headline-row reveal">
