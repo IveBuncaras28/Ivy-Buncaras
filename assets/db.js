@@ -82,11 +82,12 @@ async function fetchTrainings(){
 async function trackVisit(){
   if(!dbReady()) return;
   try{
-    await window.supabaseClient.from('site_visits').insert({
+    const { error } = await window.supabaseClient.from('site_visits').insert({
       page: location.pathname.split('/').pop() || 'index.html',
       referrer: document.referrer || null
     });
-  }catch(e){ /* ignore */ }
+    if(error) console.warn('trackVisit failed:', error.message);
+  }catch(e){ console.warn('trackVisit failed:', e); }
 }
 
 // Admin-only: total visit count plus a per-page breakdown.
