@@ -25,3 +25,4 @@ if(soc){
 }
 
 obs();
+trackVisit();
