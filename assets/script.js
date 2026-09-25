@@ -9,6 +9,34 @@ function obs(){
   document.querySelectorAll('.reveal:not(.in)').forEach(el=>io.observe(el));
 }
 
+// Generic client-side paginator used by dashboard.html (indicators + headlines)
+// and any other list that wants Prev/Next paging over an in-memory array.
+//   getItems   — function returning the current full array to page over
+//   pageSize   — items per page
+//   renderFn   — called with the items for the current page
+//   paginationEl, prevBtn, nextBtn, labelEl — the wrapping controls
+function makePaginator(getItems, pageSize, renderFn, paginationEl, prevBtn, nextBtn, labelEl){
+  let page = 0;
+  function render(){
+    const items = getItems() || [];
+    const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+    if(page > totalPages - 1) page = totalPages - 1;
+    if(page < 0) page = 0;
+    const start = page * pageSize;
+    renderFn(items.slice(start, start + pageSize));
+    if(paginationEl) paginationEl.style.display = totalPages > 1 ? 'flex' : 'none';
+    if(labelEl) labelEl.textContent = `Page ${page + 1} of ${totalPages}`;
+    if(prevBtn) prevBtn.disabled = page === 0;
+    if(nextBtn) nextBtn.disabled = page >= totalPages - 1;
+  }
+  if(prevBtn) prevBtn.onclick = ()=>{ page--; render(); };
+  if(nextBtn) nextBtn.onclick = ()=>{ page++; render(); };
+  return {
+    render,
+    reset(){ page = 0; render(); }
+  };
+}
+
 // Highlight the current page in the nav.
 document.querySelectorAll('.links a').forEach(a=>{
   const here=location.pathname.split('/').pop();
