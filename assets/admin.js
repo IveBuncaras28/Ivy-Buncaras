@@ -45,6 +45,7 @@ async function init(){
   setupTrainings();
   setupPHDashboard();
   setupBooks();
+  setupLms();
   setupComments();
 }
 
@@ -53,7 +54,7 @@ function showDashboard(email){
   loginScreen.style.display='none'; dashboard.style.display='block';
   const who=document.getElementById('who-email');
   if(who && email) who.textContent = email;
-  loadPosts(); loadProjects(); loadResearch(); loadTrainings(); loadIndicators(); loadHeadlines(); loadBooks(); loadComments(); loadVisits();
+  loadPosts(); loadProjects(); loadResearch(); loadTrainings(); loadIndicators(); loadHeadlines(); loadBooks(); loadLms(); loadComments(); loadVisits();
 }
 
 function slugify(s){
@@ -683,6 +684,92 @@ window.deleteBook = async function(id){
   if(!confirm('Delete this book permanently?')) return;
   await sb.from('books').delete().eq('id', id);
   loadBooks();
+};
+
+/* ---------------- LMS ---------------- */
+function setupLms(){
+  document.getElementById('lms-file-file').addEventListener('change', async (ev)=>{
+    const file = ev.target.files[0]; if(!file) return;
+    const msg = document.getElementById('lms-msg');
+    msg.textContent = 'Uploading…';
+    try{
+      const url = await uploadFile(file, 'lms-files');
+      document.getElementById('lms-file-url').value = url;
+      msg.innerHTML = `<div class="msg ok">File attached.</div>`;
+    }catch(e){ msg.innerHTML = `<div class="msg err">Upload failed: ${escapeHtml(e.message)}</div>`; }
+  });
+
+  document.getElementById('lms-cancel').addEventListener('click', resetLmsForm);
+
+  document.getElementById('lms-form').addEventListener('submit', async (ev)=>{
+    ev.preventDefault();
+    const msg = document.getElementById('lms-msg');
+    const id = document.getElementById('lms-id').value;
+    const row = {
+      grade_level: document.getElementById('lms-grade').value,
+      subject: document.getElementById('lms-subject').value.trim(),
+      material_type: document.getElementById('lms-type').value,
+      title: document.getElementById('lms-title').value.trim(),
+      description: document.getElementById('lms-description').value.trim(),
+      link_url: document.getElementById('lms-link').value.trim() || null,
+      file_url: document.getElementById('lms-file-url').value || null
+    };
+    try{
+      if(id){
+        const { error } = await sb.from('lms_materials').update(row).eq('id', id);
+        if(error) throw error;
+      }else{
+        const { error } = await sb.from('lms_materials').insert(row);
+        if(error) throw error;
+      }
+      msg.innerHTML = '<div class="msg ok">Saved.</div>';
+      resetLmsForm(); loadLms();
+    }catch(e){ msg.innerHTML = `<div class="msg err">${escapeHtml(e.message)}</div>`; }
+  });
+}
+
+function resetLmsForm(){
+  document.getElementById('lms-form').reset();
+  document.getElementById('lms-id').value = '';
+  document.getElementById('lms-file-url').value = '';
+  document.getElementById('lms-msg').textContent = '';
+}
+
+async function loadLms(){
+  const list = document.getElementById('lms-list');
+  const { data, error } = await sb.from('lms_materials').select('*').order('created_at', {ascending:false});
+  if(error){ list.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`; return; }
+  if(!data.length){ list.innerHTML = '<div class="empty">No materials yet — add your first one above.</div>'; return; }
+  list.innerHTML = data.map(m => `
+    <div class="admin-row">
+      <div class="info"><b>${escapeHtml(m.title)} <span class="badge live">${escapeHtml(m.material_type)}</span></b>
+      <span>${escapeHtml(m.grade_level)} · ${escapeHtml(m.subject)} · ${fmtDate(m.created_at)}</span></div>
+      <div class="btns">
+        <button class="btn-mini" onclick="editLms('${m.id}')">Edit</button>
+        <button class="btn-mini danger" onclick="deleteLms('${m.id}')">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+window.editLms = async function(id){
+  const { data } = await sb.from('lms_materials').select('*').eq('id', id).single();
+  if(!data) return;
+  document.getElementById('lms-id').value = data.id;
+  document.getElementById('lms-grade').value = data.grade_level;
+  document.getElementById('lms-subject').value = data.subject;
+  document.getElementById('lms-type').value = data.material_type;
+  document.getElementById('lms-title').value = data.title;
+  document.getElementById('lms-description').value = data.description || '';
+  document.getElementById('lms-link').value = data.link_url || '';
+  document.getElementById('lms-file-url').value = data.file_url || '';
+  document.querySelector('[data-tab="lms"]').click();
+  window.scrollTo({top:0, behavior:'smooth'});
+};
+
+window.deleteLms = async function(id){
+  if(!confirm('Delete this material permanently?')) return;
+  await sb.from('lms_materials').delete().eq('id', id);
+  loadLms();
 };
 
 /* ---------------- COMMENTS ---------------- */
