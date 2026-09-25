@@ -223,4 +223,11 @@ footer a:hover{color:#fff}
 .headline-row a.htitle:hover{color:var(--gold)}
 .headline-row .hmeta{font-size:12px;color:var(--muted);margin-top:5px}
 .headline-row .hgo{flex-shrink:0;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);text-decoration:none;white-space:nowrap;margin-top:2px}
+
+/* ---- pagination ---- */
+.pagination{display:none;align-items:center;justify-content:center;gap:20px;margin-top:38px}
+.page-btn{font:inherit;font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:11px 22px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;border-radius:99px;transition:.2s}
+.page-btn:hover:not(:disabled){border-color:var(--gold);color:var(--gold)}
+.page-btn:disabled{opacity:.3;cursor:not-allowed}
+.page-indicator{font-size:12px;color:var(--muted);letter-spacing:.05em;min-width:100px;text-align:center}
 @media(max-width:640px){.admin-form .row2{grid-template-columns:1fr}}
