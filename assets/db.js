@@ -107,13 +107,6 @@ async function fetchVisitStats(){
   return { total: count||0, breakdown };
 }
 
-async function fetchLmsMaterials(){
-  const { data, error } = await window.supabaseClient
-    .from('lms_materials').select('*').order('created_at', {ascending:false});
-  if(error) throw error;
-  return data;
-}
-
 async function fetchIndicators(){
   const { data, error } = await window.supabaseClient
     .from('indicators').select('*').order('sort_order', {ascending:true}).order('created_at', {ascending:true});
@@ -124,6 +117,13 @@ async function fetchIndicators(){
 async function fetchHeadlines(){
   const { data, error } = await window.supabaseClient
     .from('headlines').select('*').order('sort_order', {ascending:true}).order('created_at', {ascending:false});
+  if(error) throw error;
+  return data;
+}
+
+async function fetchLmsMaterials(){
+  const { data, error } = await window.supabaseClient
+    .from('lms_materials').select('*').order('sort_order', {ascending:true}).order('created_at', {ascending:false});
   if(error) throw error;
   return data;
 }
