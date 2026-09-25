@@ -14,6 +14,11 @@
 </div></header>
 <section id="research"><div class="wrap">
 <div class="grid" id="research-grid"><div class="loading">Loading research…</div></div>
+<div class="pagination" id="research-pagination">
+  <button class="page-btn" id="research-prev">← Previous</button>
+  <span class="page-indicator" id="research-page-label"></span>
+  <button class="page-btn" id="research-next">Next →</button>
+</div>
 </div></section>
 <footer id="contact-footer">
 <div class="eyebrow" style="color:var(--gold-l)">Get in touch</div>
@@ -42,7 +47,7 @@
   catch(e){ grid.innerHTML='<div class="empty">Couldn\'t load research right now.</div>'; return; }
   if(!items.length){ grid.innerHTML='<div class="empty">No papers added yet.</div>'; return; }
 
-  grid.innerHTML=items.map(r=>`
+  const card=r=>`
     <article class="card reveal">
       ${r.cover_url?`<img src="${r.cover_url}" alt="" class="card-cover">`:''}
       <div class="chips"><span class="chip">${escapeHtml(r.venue)}</span></div>
@@ -50,8 +55,17 @@
       <p>${escapeHtml(r.description||'')}</p>
       ${r.file_url?`<a class="more" href="${r.file_url}" target="_blank" rel="noopener">Download →</a> `:''}
       ${r.link_url?`<a class="more" href="${r.link_url}" target="_blank" rel="noopener">Read paper →</a>`:''}
-    </article>`).join('');
-  if(window.obs) obs();
+    </article>`;
+  const paginator=makePaginator(
+    ()=>items,
+    6,
+    pageItems=>{ grid.innerHTML=pageItems.map(card).join(''); if(window.obs) obs(); },
+    document.getElementById('research-pagination'),
+    document.getElementById('research-prev'),
+    document.getElementById('research-next'),
+    document.getElementById('research-page-label')
+  );
+  paginator.render();
 })();
 </script>
 </body></html>
