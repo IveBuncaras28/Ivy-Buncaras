@@ -15,6 +15,11 @@
 <section id="library"><div class="wrap">
 <div class="filters reveal" id="lib-filters"></div>
 <div class="grid" id="library-grid"><div class="loading">Loading books…</div></div>
+<div class="pagination" id="library-pagination">
+  <button class="page-btn" id="library-prev">← Previous</button>
+  <span class="page-indicator" id="library-page-label"></span>
+  <button class="page-btn" id="library-next">Next →</button>
+</div>
 </div></section>
 <footer id="contact-footer">
 <div class="eyebrow" style="color:var(--gold-l)">Get in touch</div>
@@ -48,14 +53,23 @@
       ${b.link_url ? `<a class="more" href="${b.link_url}" target="_blank" rel="noopener">More →</a>` : ''}
     </article>`;
 
-  const render = f => { grid.innerHTML = books.filter(b=>f==='All'||b.shelf===f).map(bookCard).join(''); if(window.obs) obs(); };
+  let currentShelf = 'All';
+  const paginator = makePaginator(
+    () => books.filter(b => currentShelf==='All' || b.shelf===currentShelf),
+    6,
+    pageItems => { grid.innerHTML = pageItems.map(bookCard).join(''); if(window.obs) obs(); },
+    document.getElementById('library-pagination'),
+    document.getElementById('library-prev'),
+    document.getElementById('library-next'),
+    document.getElementById('library-page-label')
+  );
   const shelves = ['All', ...new Set(books.map(b=>b.shelf))];
   filtersEl.innerHTML = shelves.map((s,i)=>`<button class="${i?'':'on'}">${escapeHtml(s)}</button>`).join('');
   filtersEl.querySelectorAll('button').forEach(btn => btn.onclick = () => {
     filtersEl.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
-    btn.classList.add('on'); render(btn.textContent);
+    btn.classList.add('on'); currentShelf = btn.textContent; paginator.reset();
   });
-  render('All');
+  paginator.render();
 })();
 </script>
 </body></html>
