@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Admin — Ivy B. Buncaras</title>
+<link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -44,6 +48,7 @@
     <button data-tab="research">Research</button>
     <button data-tab="trainings">Trainings</button>
     <button data-tab="books">Library</button>
+    <button data-tab="lms">LMS</button>
     <button data-tab="phdashboard">PH Dashboard</button>
     <button data-tab="comments">Comments</button>
     <button data-tab="visits">Visits</button>
@@ -170,6 +175,50 @@
     </form>
     <div class="panel-head"><h2>All Trainings</h2></div>
     <div class="admin-list" id="trainings-list"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- LMS -->
+  <div class="admin-panel" id="panel-lms">
+    <div class="panel-head"><h2>New / Edit Material</h2><p>Lesson notes, PowerPoint presentations, Excel files, and quizzes — organized by grade level and subject.</p></div>
+    <form class="admin-form" id="lms-form">
+      <input type="hidden" id="lms-id">
+      <div class="row2">
+        <div><label>Grade Level</label>
+          <select id="lms-grade" required>
+            <option value="">Select grade…</option>
+            <option>Grade 1</option><option>Grade 2</option><option>Grade 3</option>
+            <option>Grade 4</option><option>Grade 5</option><option>Grade 6</option>
+            <option>Grade 7</option><option>Grade 8</option><option>Grade 9</option>
+            <option>Grade 10</option><option>Grade 11</option><option>Grade 12</option>
+          </select>
+        </div>
+        <div><label>Subject</label><input type="text" id="lms-subject" placeholder="e.g. Mathematics, Filipino, Science" required></div>
+      </div>
+      <div class="row2">
+        <div><label>Material Type</label>
+          <select id="lms-type" required>
+            <option value="">Select type…</option>
+            <option>Lesson Notes</option>
+            <option>PowerPoint</option>
+            <option>Excel</option>
+            <option>Quiz</option>
+          </select>
+        </div>
+        <div><label>Title</label><input type="text" id="lms-title" required></div>
+      </div>
+      <div><label>Description</label><textarea id="lms-description"></textarea></div>
+      <div class="row2">
+        <div><label>Upload file (PDF, PPTX, XLSX, DOCX…)</label><input type="file" id="lms-file-file"><input type="hidden" id="lms-file-url"></div>
+        <div><label>External link (optional — Google Drive, Forms, etc.)</label><input type="text" id="lms-link"></div>
+      </div>
+      <div class="actions">
+        <button class="btn-mini primary" type="submit">Save Material</button>
+        <button class="btn-mini" type="button" id="lms-cancel">Clear / New</button>
+        <span id="lms-msg"></span>
+      </div>
+    </form>
+    <div class="panel-head"><h2>All Materials</h2></div>
+    <div class="admin-list" id="lms-list"><div class="loading">Loading…</div></div>
   </div>
 
   <!-- PH DASHBOARD -->
