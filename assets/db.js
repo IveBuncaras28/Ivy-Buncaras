@@ -1,826 +1,129 @@
-/* Admin panel. Requires supabase-config.js + db.js loaded first. */
+/* Shared helpers. Requires supabase-config.js (window.supabaseClient) loaded first. */
 
-const sb = window.supabaseClient;
-const loginScreen = document.getElementById('login-screen');
-const dashboard = document.getElementById('dashboard');
-
-if(!sb){
-  loginScreen.innerHTML = '<div class="login-box"><div class="login-mark">IB</div><h1>Not connected</h1><p class="login-sub">Fill in <code>assets/supabase-config.js</code> with your Supabase project URL and key first.</p></div>';
-}else{
-  init();
+function dbReady(){
+  return !!window.supabaseClient;
 }
 
-async function init(){
-  const { data: { session } } = await sb.auth.getSession();
-  if(session){ showDashboard(session.user.email); } else { showLogin(); }
-
-  document.getElementById('login-form').addEventListener('submit', async (ev)=>{
-    ev.preventDefault();
-    const email = document.getElementById('login-email').value.trim();
-    const password = document.getElementById('login-password').value;
-    const msg = document.getElementById('login-msg');
-    msg.textContent = '';
-    const { error } = await sb.auth.signInWithPassword({ email, password });
-    if(error){ msg.innerHTML = `<div class="msg err">${escapeHtml(error.message)}</div>`; return; }
-    showDashboard(email);
-  });
-
-  document.getElementById('signout').addEventListener('click', async ()=>{
-    await sb.auth.signOut();
-    showLogin();
-  });
-
-  document.querySelectorAll('.admin-tabs button').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      document.querySelectorAll('.admin-tabs button').forEach(b=>b.classList.remove('on'));
-      btn.classList.add('on');
-      document.querySelectorAll('.admin-panel').forEach(p=>p.classList.remove('on'));
-      document.getElementById('panel-'+btn.dataset.tab).classList.add('on');
-    });
-  });
-
-  setupPosts();
-  setupProjects();
-  setupResearch();
-  setupTrainings();
-  setupPHDashboard();
-  setupBooks();
-  setupLms();
-  setupComments();
+function notConfiguredNotice(el, extra){
+  el.innerHTML = `<div class="empty">This section isn't connected to a database yet.${extra?` ${extra}`:''}<br>Fill in <code>assets/supabase-config.js</code> with your Supabase project URL and key to turn it on.</div>`;
 }
 
-function showLogin(){ loginScreen.style.display='block'; dashboard.style.display='none'; }
-function showDashboard(email){
-  loginScreen.style.display='none'; dashboard.style.display='block';
-  const who=document.getElementById('who-email');
-  if(who && email) who.textContent = email;
-  loadPosts(); loadProjects(); loadResearch(); loadTrainings(); loadIndicators(); loadHeadlines(); loadBooks(); loadLms(); loadComments(); loadVisits();
+function renderMarkdown(md){
+  const raw = (window.marked && (window.marked.parse ? window.marked.parse(md) : window.marked(md))) || md.replace(/\n/g,'<br>');
+  return window.DOMPurify ? window.DOMPurify.sanitize(raw) : raw;
 }
 
-function slugify(s){
-  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+function escapeHtml(s){
+  return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-async function uploadFile(file, folder){
-  const path = `${folder}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-]/g,'_')}`;
-  const { error } = await sb.storage.from('uploads').upload(path, file, { upsert:true });
+function fmtDate(iso){
+  try{ return new Date(iso).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}); }
+  catch(e){ return iso; }
+}
+
+async function fetchPublishedPosts(){
+  const { data, error } = await window.supabaseClient
+    .from('posts').select('*').eq('published', true).order('created_at', {ascending:false});
   if(error) throw error;
-  const { data } = sb.storage.from('uploads').getPublicUrl(path);
-  return data.publicUrl;
+  return data;
 }
 
-/* ---------------- POSTS ---------------- */
-function setupPosts(){
-  const form = document.getElementById('post-form');
-  const titleEl = document.getElementById('post-title');
-  const slugEl = document.getElementById('post-slug');
-  let slugTouched = false;
-  slugEl.addEventListener('input', ()=> slugTouched = true);
-  titleEl.addEventListener('input', ()=>{ if(!slugTouched) slugEl.value = slugify(titleEl.value); });
-
-  document.getElementById('post-cover-file').addEventListener('change', async (ev)=>{
-    const file = ev.target.files[0]; if(!file) return;
-    const msg = document.getElementById('post-msg');
-    msg.textContent = 'Uploading…';
-    try{
-      const url = await uploadFile(file, 'covers');
-      document.getElementById('post-cover-url').value = url;
-      const img = document.getElementById('post-cover-preview');
-      img.src = url; img.style.display='inline-block';
-      msg.textContent = '';
-    }catch(e){ msg.innerHTML = `<div class="msg err">Upload failed: ${escapeHtml(e.message)}</div>`; }
-  });
-
-  document.getElementById('post-cancel').addEventListener('click', resetPostForm);
-
-  form.addEventListener('submit', async (ev)=>{
-    ev.preventDefault();
-    const msg = document.getElementById('post-msg');
-    const id = document.getElementById('post-id').value;
-    const row = {
-      title: titleEl.value.trim(),
-      slug: slugEl.value.trim(),
-      excerpt: document.getElementById('post-excerpt').value.trim(),
-      body: document.getElementById('post-body').value,
-      cover_url: document.getElementById('post-cover-url').value || null,
-      published: document.getElementById('post-published').checked,
-      updated_at: new Date().toISOString()
-    };
-    try{
-      if(id){
-        const { error } = await sb.from('posts').update(row).eq('id', id);
-        if(error) throw error;
-      }else{
-        const { error } = await sb.from('posts').insert(row);
-        if(error) throw error;
-      }
-      msg.innerHTML = '<div class="msg ok">Saved.</div>';
-      resetPostForm(); loadPosts();
-    }catch(e){ msg.innerHTML = `<div class="msg err">${escapeHtml(e.message)}</div>`; }
-  });
+async function fetchPostBySlug(slug){
+  const { data, error } = await window.supabaseClient
+    .from('posts').select('*').eq('slug', slug).eq('published', true).maybeSingle();
+  if(error) throw error;
+  return data;
 }
 
-function resetPostForm(){
-  document.getElementById('post-form').reset();
-  document.getElementById('post-id').value = '';
-  document.getElementById('post-cover-url').value = '';
-  document.getElementById('post-cover-preview').style.display = 'none';
-  document.getElementById('post-msg').textContent = '';
+async function fetchApprovedComments(postId){
+  const { data, error } = await window.supabaseClient
+    .from('comments').select('*').eq('post_id', postId).eq('approved', true).order('created_at', {ascending:true});
+  if(error) throw error;
+  return data;
 }
 
-async function loadPosts(){
-  const list = document.getElementById('posts-list');
-  const { data, error } = await sb.from('posts').select('*').order('created_at', {ascending:false});
-  if(error){ list.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`; return; }
-  if(!data.length){ list.innerHTML = '<div class="empty">No posts yet — create your first one above.</div>'; return; }
-  list.innerHTML = data.map(p => `
-    <div class="admin-row">
-      <div class="info"><b>${escapeHtml(p.title)} <span class="badge ${p.published?'live':'pending'}">${p.published?'Published':'Draft'}</span></b>
-      <span>/${escapeHtml(p.slug)} · ${fmtDate(p.created_at)}</span></div>
-      <div class="btns">
-        <button class="btn-mini" onclick="editPost('${p.id}')">Edit</button>
-        <button class="btn-mini danger" onclick="deletePost('${p.id}')">Delete</button>
-      </div>
-    </div>`).join('');
+async function submitComment(postId, name, body){
+  const { error } = await window.supabaseClient
+    .from('comments').insert({post_id: postId, name: name, body: body});
+  if(error) throw error;
 }
 
-window.editPost = async function(id){
-  const { data } = await sb.from('posts').select('*').eq('id', id).single();
-  if(!data) return;
-  document.getElementById('post-id').value = data.id;
-  document.getElementById('post-title').value = data.title;
-  document.getElementById('post-slug').value = data.slug;
-  document.getElementById('post-excerpt').value = data.excerpt || '';
-  document.getElementById('post-body').value = data.body;
-  document.getElementById('post-published').checked = data.published;
-  document.getElementById('post-cover-url').value = data.cover_url || '';
-  const img = document.getElementById('post-cover-preview');
-  if(data.cover_url){ img.src = data.cover_url; img.style.display='inline-block'; } else { img.style.display='none'; }
-  document.querySelector('[data-tab="posts"]').click();
-  window.scrollTo({top:0, behavior:'smooth'});
-};
-
-window.deletePost = async function(id){
-  if(!confirm('Delete this post permanently?')) return;
-  await sb.from('posts').delete().eq('id', id);
-  loadPosts();
-};
-
-/* ---------------- PROJECTS ---------------- */
-function setupProjects(){
-  document.getElementById('project-cover-file').addEventListener('change', async (ev)=>{
-    const file = ev.target.files[0]; if(!file) return;
-    const msg = document.getElementById('project-msg');
-    msg.textContent = 'Uploading…';
-    try{
-      const url = await uploadFile(file, 'project-covers');
-      document.getElementById('project-cover-url').value = url;
-      const img = document.getElementById('project-cover-preview');
-      img.src = url; img.style.display='inline-block';
-      msg.textContent = '';
-    }catch(e){ msg.innerHTML = `<div class="msg err">Upload failed: ${escapeHtml(e.message)}</div>`; }
-  });
-
-  document.getElementById('project-cancel').addEventListener('click', resetProjectForm);
-
-  document.getElementById('project-form').addEventListener('submit', async (ev)=>{
-    ev.preventDefault();
-    const msg = document.getElementById('project-msg');
-    const id = document.getElementById('project-id').value;
-    const tagsRaw = document.getElementById('project-tags').value.trim();
-    const row = {
-      title: document.getElementById('project-title').value.trim(),
-      category: document.getElementById('project-category').value.trim(),
-      description: document.getElementById('project-description').value.trim(),
-      tags: tagsRaw ? tagsRaw.split(',').map(t=>t.trim()).filter(Boolean) : [],
-      link_url: document.getElementById('project-link').value.trim() || null,
-      cover_url: document.getElementById('project-cover-url').value || null
-    };
-    try{
-      if(id){
-        const { error } = await sb.from('projects').update(row).eq('id', id);
-        if(error) throw error;
-      }else{
-        const { error } = await sb.from('projects').insert(row);
-        if(error) throw error;
-      }
-      msg.innerHTML = '<div class="msg ok">Saved.</div>';
-      resetProjectForm(); loadProjects();
-    }catch(e){ msg.innerHTML = `<div class="msg err">${escapeHtml(e.message)}</div>`; }
-  });
+async function fetchBooks(){
+  const { data, error } = await window.supabaseClient
+    .from('books').select('*').order('sort_order', {ascending:true}).order('created_at', {ascending:false});
+  if(error) throw error;
+  return data;
 }
 
-function resetProjectForm(){
-  document.getElementById('project-form').reset();
-  document.getElementById('project-id').value = '';
-  document.getElementById('project-cover-url').value = '';
-  document.getElementById('project-cover-preview').style.display = 'none';
-  document.getElementById('project-msg').textContent = '';
+async function fetchProjects(){
+  const { data, error } = await window.supabaseClient
+    .from('projects').select('*').order('sort_order', {ascending:true}).order('created_at', {ascending:false});
+  if(error) throw error;
+  return data;
 }
 
-async function loadProjects(){
-  const list = document.getElementById('projects-list');
-  const { data, error } = await sb.from('projects').select('*').order('created_at', {ascending:false});
-  if(error){ list.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`; return; }
-  if(!data.length){ list.innerHTML = '<div class="empty">No projects yet — add your first one above.</div>'; return; }
-  list.innerHTML = data.map(p => `
-    <div class="admin-row">
-      <div class="info"><b>${escapeHtml(p.title)}</b><span>${escapeHtml(p.category)} · ${fmtDate(p.created_at)}</span></div>
-      <div class="btns">
-        <button class="btn-mini" onclick="editProject('${p.id}')">Edit</button>
-        <button class="btn-mini danger" onclick="deleteProject('${p.id}')">Delete</button>
-      </div>
-    </div>`).join('');
+async function fetchResearch(){
+  const { data, error } = await window.supabaseClient
+    .from('research').select('*').order('sort_order', {ascending:true}).order('created_at', {ascending:false});
+  if(error) throw error;
+  return data;
 }
 
-window.editProject = async function(id){
-  const { data } = await sb.from('projects').select('*').eq('id', id).single();
-  if(!data) return;
-  document.getElementById('project-id').value = data.id;
-  document.getElementById('project-title').value = data.title;
-  document.getElementById('project-category').value = data.category;
-  document.getElementById('project-description').value = data.description || '';
-  document.getElementById('project-tags').value = (data.tags||[]).join(', ');
-  document.getElementById('project-link').value = data.link_url || '';
-  document.getElementById('project-cover-url').value = data.cover_url || '';
-  const img = document.getElementById('project-cover-preview');
-  if(data.cover_url){ img.src = data.cover_url; img.style.display='inline-block'; } else { img.style.display='none'; }
-  document.querySelector('[data-tab="projects"]').click();
-  window.scrollTo({top:0, behavior:'smooth'});
-};
-
-window.deleteProject = async function(id){
-  if(!confirm('Delete this project permanently?')) return;
-  await sb.from('projects').delete().eq('id', id);
-  loadProjects();
-};
-
-/* ---------------- RESEARCH ---------------- */
-function setupResearch(){
-  document.getElementById('research-cover-file').addEventListener('change', async (ev)=>{
-    const file = ev.target.files[0]; if(!file) return;
-    const msg = document.getElementById('research-msg');
-    msg.textContent = 'Uploading…';
-    try{
-      const url = await uploadFile(file, 'research-covers');
-      document.getElementById('research-cover-url').value = url;
-      const img = document.getElementById('research-cover-preview');
-      img.src = url; img.style.display='inline-block';
-      msg.textContent = '';
-    }catch(e){ msg.innerHTML = `<div class="msg err">Upload failed: ${escapeHtml(e.message)}</div>`; }
-  });
-
-  document.getElementById('research-file-file').addEventListener('change', async (ev)=>{
-    const file = ev.target.files[0]; if(!file) return;
-    const msg = document.getElementById('research-msg');
-    msg.textContent = 'Uploading…';
-    try{
-      const url = await uploadFile(file, 'research-files');
-      document.getElementById('research-file-url').value = url;
-      msg.innerHTML = `<div class="msg ok">File attached.</div>`;
-    }catch(e){ msg.innerHTML = `<div class="msg err">Upload failed: ${escapeHtml(e.message)}</div>`; }
-  });
-
-  document.getElementById('research-cancel').addEventListener('click', resetResearchForm);
-
-  document.getElementById('research-form').addEventListener('submit', async (ev)=>{
-    ev.preventDefault();
-    const msg = document.getElementById('research-msg');
-    const id = document.getElementById('research-id').value;
-    const row = {
-      title: document.getElementById('research-title').value.trim(),
-      venue: document.getElementById('research-venue').value.trim(),
-      description: document.getElementById('research-description').value.trim(),
-      link_url: document.getElementById('research-link').value.trim() || null,
-      cover_url: document.getElementById('research-cover-url').value || null,
-      file_url: document.getElementById('research-file-url').value || null
-    };
-    try{
-      if(id){
-        const { error } = await sb.from('research').update(row).eq('id', id);
-        if(error) throw error;
-      }else{
-        const { error } = await sb.from('research').insert(row);
-        if(error) throw error;
-      }
-      msg.innerHTML = '<div class="msg ok">Saved.</div>';
-      resetResearchForm(); loadResearch();
-    }catch(e){ msg.innerHTML = `<div class="msg err">${escapeHtml(e.message)}</div>`; }
-  });
+async function fetchTrainings(){
+  const { data, error } = await window.supabaseClient
+    .from('trainings').select('*').order('sort_order', {ascending:true}).order('created_at', {ascending:false});
+  if(error) throw error;
+  return data;
 }
 
-function resetResearchForm(){
-  document.getElementById('research-form').reset();
-  document.getElementById('research-id').value = '';
-  document.getElementById('research-cover-url').value = '';
-  document.getElementById('research-file-url').value = '';
-  document.getElementById('research-cover-preview').style.display = 'none';
-  document.getElementById('research-msg').textContent = '';
-}
-
-async function loadResearch(){
-  const list = document.getElementById('research-list');
-  const { data, error } = await sb.from('research').select('*').order('created_at', {ascending:false});
-  if(error){ list.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`; return; }
-  if(!data.length){ list.innerHTML = '<div class="empty">No papers yet — add your first one above.</div>'; return; }
-  list.innerHTML = data.map(r => `
-    <div class="admin-row">
-      <div class="info"><b>${escapeHtml(r.title)}</b><span>${escapeHtml(r.venue)} · ${fmtDate(r.created_at)}</span></div>
-      <div class="btns">
-        <button class="btn-mini" onclick="editResearch('${r.id}')">Edit</button>
-        <button class="btn-mini danger" onclick="deleteResearch('${r.id}')">Delete</button>
-      </div>
-    </div>`).join('');
-}
-
-window.editResearch = async function(id){
-  const { data } = await sb.from('research').select('*').eq('id', id).single();
-  if(!data) return;
-  document.getElementById('research-id').value = data.id;
-  document.getElementById('research-title').value = data.title;
-  document.getElementById('research-venue').value = data.venue;
-  document.getElementById('research-description').value = data.description || '';
-  document.getElementById('research-link').value = data.link_url || '';
-  document.getElementById('research-cover-url').value = data.cover_url || '';
-  document.getElementById('research-file-url').value = data.file_url || '';
-  const img = document.getElementById('research-cover-preview');
-  if(data.cover_url){ img.src = data.cover_url; img.style.display='inline-block'; } else { img.style.display='none'; }
-  document.querySelector('[data-tab="research"]').click();
-  window.scrollTo({top:0, behavior:'smooth'});
-};
-
-window.deleteResearch = async function(id){
-  if(!confirm('Delete this paper permanently?')) return;
-  await sb.from('research').delete().eq('id', id);
-  loadResearch();
-};
-
-/* ---------------- TRAININGS ---------------- */
-function setupTrainings(){
-  document.getElementById('training-cover-file').addEventListener('change', async (ev)=>{
-    const file = ev.target.files[0]; if(!file) return;
-    const msg = document.getElementById('training-msg');
-    msg.textContent = 'Uploading…';
-    try{
-      const url = await uploadFile(file, 'training-covers');
-      document.getElementById('training-cover-url').value = url;
-      const img = document.getElementById('training-cover-preview');
-      img.src = url; img.style.display='inline-block';
-      msg.textContent = '';
-    }catch(e){ msg.innerHTML = `<div class="msg err">Upload failed: ${escapeHtml(e.message)}</div>`; }
-  });
-
-  document.getElementById('training-file-file').addEventListener('change', async (ev)=>{
-    const file = ev.target.files[0]; if(!file) return;
-    const msg = document.getElementById('training-msg');
-    msg.textContent = 'Uploading…';
-    try{
-      const url = await uploadFile(file, 'training-files');
-      document.getElementById('training-file-url').value = url;
-      msg.innerHTML = `<div class="msg ok">Certificate attached.</div>`;
-    }catch(e){ msg.innerHTML = `<div class="msg err">Upload failed: ${escapeHtml(e.message)}</div>`; }
-  });
-
-  document.getElementById('training-cancel').addEventListener('click', resetTrainingForm);
-
-  document.getElementById('training-form').addEventListener('submit', async (ev)=>{
-    ev.preventDefault();
-    const msg = document.getElementById('training-msg');
-    const id = document.getElementById('training-id').value;
-    const row = {
-      title: document.getElementById('training-title').value.trim(),
-      provider: document.getElementById('training-provider').value.trim(),
-      date_label: document.getElementById('training-date').value.trim(),
-      description: document.getElementById('training-description').value.trim(),
-      link_url: document.getElementById('training-link').value.trim() || null,
-      cover_url: document.getElementById('training-cover-url').value || null,
-      file_url: document.getElementById('training-file-url').value || null
-    };
-    try{
-      if(id){
-        const { error } = await sb.from('trainings').update(row).eq('id', id);
-        if(error) throw error;
-      }else{
-        const { error } = await sb.from('trainings').insert(row);
-        if(error) throw error;
-      }
-      msg.innerHTML = '<div class="msg ok">Saved.</div>';
-      resetTrainingForm(); loadTrainings();
-    }catch(e){ msg.innerHTML = `<div class="msg err">${escapeHtml(e.message)}</div>`; }
-  });
-}
-
-function resetTrainingForm(){
-  document.getElementById('training-form').reset();
-  document.getElementById('training-id').value = '';
-  document.getElementById('training-cover-url').value = '';
-  document.getElementById('training-file-url').value = '';
-  document.getElementById('training-cover-preview').style.display = 'none';
-  document.getElementById('training-msg').textContent = '';
-}
-
-async function loadTrainings(){
-  const list = document.getElementById('trainings-list');
-  const { data, error } = await sb.from('trainings').select('*').order('created_at', {ascending:false});
-  if(error){ list.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`; return; }
-  if(!data.length){ list.innerHTML = '<div class="empty">No trainings yet — add your first one above.</div>'; return; }
-  list.innerHTML = data.map(t => `
-    <div class="admin-row">
-      <div class="info"><b>${escapeHtml(t.title)}</b><span>${escapeHtml(t.provider||'')}${t.date_label?' · '+escapeHtml(t.date_label):''}</span></div>
-      <div class="btns">
-        <button class="btn-mini" onclick="editTraining('${t.id}')">Edit</button>
-        <button class="btn-mini danger" onclick="deleteTraining('${t.id}')">Delete</button>
-      </div>
-    </div>`).join('');
-}
-
-window.editTraining = async function(id){
-  const { data } = await sb.from('trainings').select('*').eq('id', id).single();
-  if(!data) return;
-  document.getElementById('training-id').value = data.id;
-  document.getElementById('training-title').value = data.title;
-  document.getElementById('training-provider').value = data.provider || '';
-  document.getElementById('training-date').value = data.date_label || '';
-  document.getElementById('training-link').value = data.link_url || '';
-  document.getElementById('training-description').value = data.description || '';
-  document.getElementById('training-cover-url').value = data.cover_url || '';
-  document.getElementById('training-file-url').value = data.file_url || '';
-  const img = document.getElementById('training-cover-preview');
-  if(data.cover_url){ img.src = data.cover_url; img.style.display='inline-block'; } else { img.style.display='none'; }
-  document.querySelector('[data-tab="trainings"]').click();
-  window.scrollTo({top:0, behavior:'smooth'});
-};
-
-window.deleteTraining = async function(id){
-  if(!confirm('Delete this training permanently?')) return;
-  await sb.from('trainings').delete().eq('id', id);
-  loadTrainings();
-};
-
-/* ---------------- PH DASHBOARD (indicators + headlines) ---------------- */
-function setupPHDashboard(){
-  document.getElementById('indicator-cancel').addEventListener('click', resetIndicatorForm);
-  document.getElementById('indicator-form').addEventListener('submit', async (ev)=>{
-    ev.preventDefault();
-    const msg = document.getElementById('indicator-msg');
-    const id = document.getElementById('indicator-id').value;
-    const row = {
-      category: document.getElementById('indicator-category').value.trim(),
-      period: document.getElementById('indicator-period').value.trim() || null,
-      label: document.getElementById('indicator-label').value.trim(),
-      value: document.getElementById('indicator-value').value.trim(),
-      sublabel: document.getElementById('indicator-sublabel').value.trim() || null,
-      source_label: document.getElementById('indicator-source-label').value.trim() || null,
-      source_url: document.getElementById('indicator-source-url').value.trim() || null
-    };
-    try{
-      const { error } = id ? await sb.from('indicators').update(row).eq('id', id) : await sb.from('indicators').insert(row);
-      if(error) throw error;
-      msg.innerHTML = '<div class="msg ok">Saved.</div>';
-      resetIndicatorForm(); loadIndicators();
-    }catch(e){ msg.innerHTML = `<div class="msg err">${escapeHtml(e.message)}</div>`; }
-  });
-
-  document.getElementById('headline-cancel').addEventListener('click', resetHeadlineForm);
-  document.getElementById('headline-form').addEventListener('submit', async (ev)=>{
-    ev.preventDefault();
-    const msg = document.getElementById('headline-msg');
-    const id = document.getElementById('headline-id').value;
-    const row = {
-      title: document.getElementById('headline-title').value.trim(),
-      source_label: document.getElementById('headline-source-label').value.trim() || null,
-      published_date: document.getElementById('headline-date').value.trim() || null,
-      source_url: document.getElementById('headline-url').value.trim()
-    };
-    try{
-      const { error } = id ? await sb.from('headlines').update(row).eq('id', id) : await sb.from('headlines').insert(row);
-      if(error) throw error;
-      msg.innerHTML = '<div class="msg ok">Saved.</div>';
-      resetHeadlineForm(); loadHeadlines();
-    }catch(e){ msg.innerHTML = `<div class="msg err">${escapeHtml(e.message)}</div>`; }
-  });
-}
-
-function resetIndicatorForm(){
-  document.getElementById('indicator-form').reset();
-  document.getElementById('indicator-id').value = '';
-  document.getElementById('indicator-msg').textContent = '';
-}
-
-async function loadIndicators(){
-  const list = document.getElementById('indicators-list');
-  const { data, error } = await sb.from('indicators').select('*').order('sort_order', {ascending:true});
-  if(error){ list.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`; return; }
-  if(!data.length){ list.innerHTML = '<div class="empty">No indicators yet — add your first one above.</div>'; return; }
-  list.innerHTML = data.map(i => `
-    <div class="admin-row">
-      <div class="info"><b>${escapeHtml(i.label)} — ${escapeHtml(i.value)}</b><span>${escapeHtml(i.category)}${i.period?` · ${escapeHtml(i.period)}`:''}</span></div>
-      <div class="btns">
-        <button class="btn-mini" onclick="editIndicator('${i.id}')">Edit</button>
-        <button class="btn-mini danger" onclick="deleteIndicator('${i.id}')">Delete</button>
-      </div>
-    </div>`).join('');
-}
-
-window.editIndicator = async function(id){
-  const { data } = await sb.from('indicators').select('*').eq('id', id).single();
-  if(!data) return;
-  document.getElementById('indicator-id').value = data.id;
-  document.getElementById('indicator-category').value = data.category;
-  document.getElementById('indicator-period').value = data.period || '';
-  document.getElementById('indicator-label').value = data.label;
-  document.getElementById('indicator-value').value = data.value;
-  document.getElementById('indicator-sublabel').value = data.sublabel || '';
-  document.getElementById('indicator-source-label').value = data.source_label || '';
-  document.getElementById('indicator-source-url').value = data.source_url || '';
-  document.querySelector('[data-tab="phdashboard"]').click();
-  window.scrollTo({top:0, behavior:'smooth'});
-};
-
-window.deleteIndicator = async function(id){
-  if(!confirm('Delete this indicator permanently?')) return;
-  await sb.from('indicators').delete().eq('id', id);
-  loadIndicators();
-};
-
-function resetHeadlineForm(){
-  document.getElementById('headline-form').reset();
-  document.getElementById('headline-id').value = '';
-  document.getElementById('headline-msg').textContent = '';
-}
-
-async function loadHeadlines(){
-  const list = document.getElementById('headlines-list-admin');
-  const { data, error } = await sb.from('headlines').select('*').order('sort_order', {ascending:true}).order('created_at', {ascending:false});
-  if(error){ list.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`; return; }
-  if(!data.length){ list.innerHTML = '<div class="empty">No headlines yet — add your first one above.</div>'; return; }
-  list.innerHTML = data.map(h => `
-    <div class="admin-row">
-      <div class="info"><b>${escapeHtml(h.title)}</b><span>${escapeHtml(h.source_label||'')}${h.published_date?` · ${escapeHtml(h.published_date)}`:''}</span></div>
-      <div class="btns">
-        <button class="btn-mini" onclick="editHeadline('${h.id}')">Edit</button>
-        <button class="btn-mini danger" onclick="deleteHeadline('${h.id}')">Delete</button>
-      </div>
-    </div>`).join('');
-}
-
-window.editHeadline = async function(id){
-  const { data } = await sb.from('headlines').select('*').eq('id', id).single();
-  if(!data) return;
-  document.getElementById('headline-id').value = data.id;
-  document.getElementById('headline-title').value = data.title;
-  document.getElementById('headline-source-label').value = data.source_label || '';
-  document.getElementById('headline-date').value = data.published_date || '';
-  document.getElementById('headline-url').value = data.source_url;
-  document.querySelector('[data-tab="phdashboard"]').click();
-  window.scrollTo({top:0, behavior:'smooth'});
-};
-
-window.deleteHeadline = async function(id){
-  if(!confirm('Delete this headline permanently?')) return;
-  await sb.from('headlines').delete().eq('id', id);
-  loadHeadlines();
-};
-
-/* ---------------- BOOKS ---------------- */
-function setupBooks(){
-  document.getElementById('book-cover-file').addEventListener('change', async (ev)=>{
-    const file = ev.target.files[0]; if(!file) return;
-    const msg = document.getElementById('book-msg');
-    msg.textContent = 'Uploading…';
-    try{
-      const url = await uploadFile(file, 'book-covers');
-      document.getElementById('book-cover-url').value = url;
-      const img = document.getElementById('book-cover-preview');
-      img.src = url; img.style.display='inline-block';
-      msg.textContent = '';
-    }catch(e){ msg.innerHTML = `<div class="msg err">Upload failed: ${escapeHtml(e.message)}</div>`; }
-  });
-
-  document.getElementById('book-file-file').addEventListener('change', async (ev)=>{
-    const file = ev.target.files[0]; if(!file) return;
-    const msg = document.getElementById('book-msg');
-    msg.textContent = 'Uploading…';
-    try{
-      const url = await uploadFile(file, 'book-files');
-      document.getElementById('book-file-url').value = url;
-      msg.innerHTML = `<div class="msg ok">File attached.</div>`;
-    }catch(e){ msg.innerHTML = `<div class="msg err">Upload failed: ${escapeHtml(e.message)}</div>`; }
-  });
-
-  document.getElementById('book-cancel').addEventListener('click', resetBookForm);
-
-  document.getElementById('book-form').addEventListener('submit', async (ev)=>{
-    ev.preventDefault();
-    const msg = document.getElementById('book-msg');
-    const id = document.getElementById('book-id').value;
-    const row = {
-      title: document.getElementById('book-title').value.trim(),
-      author: document.getElementById('book-author').value.trim(),
-      shelf: document.getElementById('book-shelf').value.trim(),
-      rating: parseInt(document.getElementById('book-rating').value, 10),
-      description: document.getElementById('book-description').value.trim(),
-      link_url: document.getElementById('book-link').value.trim() || null,
-      cover_url: document.getElementById('book-cover-url').value || null,
-      file_url: document.getElementById('book-file-url').value || null
-    };
-    try{
-      if(id){
-        const { error } = await sb.from('books').update(row).eq('id', id);
-        if(error) throw error;
-      }else{
-        const { error } = await sb.from('books').insert(row);
-        if(error) throw error;
-      }
-      msg.innerHTML = '<div class="msg ok">Saved.</div>';
-      resetBookForm(); loadBooks();
-    }catch(e){ msg.innerHTML = `<div class="msg err">${escapeHtml(e.message)}</div>`; }
-  });
-}
-
-function resetBookForm(){
-  document.getElementById('book-form').reset();
-  document.getElementById('book-id').value = '';
-  document.getElementById('book-cover-url').value = '';
-  document.getElementById('book-file-url').value = '';
-  document.getElementById('book-cover-preview').style.display = 'none';
-  document.getElementById('book-msg').textContent = '';
-}
-
-async function loadBooks(){
-  const list = document.getElementById('books-list');
-  const { data, error } = await sb.from('books').select('*').order('created_at', {ascending:false});
-  if(error){ list.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`; return; }
-  if(!data.length){ list.innerHTML = '<div class="empty">No books yet — add your first one above.</div>'; return; }
-  list.innerHTML = data.map(b => `
-    <div class="admin-row">
-      <div class="info"><b>${escapeHtml(b.title)}</b><span>${escapeHtml(b.author||'')} · ${escapeHtml(b.shelf)}</span></div>
-      <div class="btns">
-        <button class="btn-mini" onclick="editBook('${b.id}')">Edit</button>
-        <button class="btn-mini danger" onclick="deleteBook('${b.id}')">Delete</button>
-      </div>
-    </div>`).join('');
-}
-
-window.editBook = async function(id){
-  const { data } = await sb.from('books').select('*').eq('id', id).single();
-  if(!data) return;
-  document.getElementById('book-id').value = data.id;
-  document.getElementById('book-title').value = data.title;
-  document.getElementById('book-author').value = data.author || '';
-  document.getElementById('book-shelf').value = data.shelf;
-  document.getElementById('book-rating').value = data.rating || 0;
-  document.getElementById('book-description').value = data.description || '';
-  document.getElementById('book-link').value = data.link_url || '';
-  document.getElementById('book-cover-url').value = data.cover_url || '';
-  document.getElementById('book-file-url').value = data.file_url || '';
-  const img = document.getElementById('book-cover-preview');
-  if(data.cover_url){ img.src = data.cover_url; img.style.display='inline-block'; } else { img.style.display='none'; }
-  document.querySelector('[data-tab="books"]').click();
-  window.scrollTo({top:0, behavior:'smooth'});
-};
-
-window.deleteBook = async function(id){
-  if(!confirm('Delete this book permanently?')) return;
-  await sb.from('books').delete().eq('id', id);
-  loadBooks();
-};
-
-/* ---------------- LMS ---------------- */
-function setupLms(){
-  document.getElementById('lms-file-file').addEventListener('change', async (ev)=>{
-    const file = ev.target.files[0]; if(!file) return;
-    const msg = document.getElementById('lms-msg');
-    msg.textContent = 'Uploading…';
-    try{
-      const url = await uploadFile(file, 'lms-files');
-      document.getElementById('lms-file-url').value = url;
-      msg.innerHTML = `<div class="msg ok">File attached.</div>`;
-    }catch(e){ msg.innerHTML = `<div class="msg err">Upload failed: ${escapeHtml(e.message)}</div>`; }
-  });
-
-  document.getElementById('lms-cancel').addEventListener('click', resetLmsForm);
-
-  document.getElementById('lms-form').addEventListener('submit', async (ev)=>{
-    ev.preventDefault();
-    const msg = document.getElementById('lms-msg');
-    const id = document.getElementById('lms-id').value;
-    const row = {
-      grade_level: document.getElementById('lms-grade').value,
-      subject: document.getElementById('lms-subject').value.trim(),
-      material_type: document.getElementById('lms-type').value,
-      title: document.getElementById('lms-title').value.trim(),
-      description: document.getElementById('lms-description').value.trim(),
-      link_url: document.getElementById('lms-link').value.trim() || null,
-      file_url: document.getElementById('lms-file-url').value || null
-    };
-    try{
-      if(id){
-        const { error } = await sb.from('lms_materials').update(row).eq('id', id);
-        if(error) throw error;
-      }else{
-        const { error } = await sb.from('lms_materials').insert(row);
-        if(error) throw error;
-      }
-      msg.innerHTML = '<div class="msg ok">Saved.</div>';
-      resetLmsForm(); loadLms();
-    }catch(e){ msg.innerHTML = `<div class="msg err">${escapeHtml(e.message)}</div>`; }
-  });
-}
-
-function resetLmsForm(){
-  document.getElementById('lms-form').reset();
-  document.getElementById('lms-id').value = '';
-  document.getElementById('lms-file-url').value = '';
-  document.getElementById('lms-msg').textContent = '';
-}
-
-async function loadLms(){
-  const list = document.getElementById('lms-list');
-  const { data, error } = await sb.from('lms_materials').select('*').order('created_at', {ascending:false});
-  if(error){ list.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`; return; }
-  if(!data.length){ list.innerHTML = '<div class="empty">No materials yet — add your first one above.</div>'; return; }
-  list.innerHTML = data.map(m => `
-    <div class="admin-row">
-      <div class="info"><b>${escapeHtml(m.title)} <span class="badge live">${escapeHtml(m.material_type)}</span></b>
-      <span>${escapeHtml(m.grade_level)} · ${escapeHtml(m.subject)} · ${fmtDate(m.created_at)}</span></div>
-      <div class="btns">
-        <button class="btn-mini" onclick="editLms('${m.id}')">Edit</button>
-        <button class="btn-mini danger" onclick="deleteLms('${m.id}')">Delete</button>
-      </div>
-    </div>`).join('');
-}
-
-window.editLms = async function(id){
-  const { data } = await sb.from('lms_materials').select('*').eq('id', id).single();
-  if(!data) return;
-  document.getElementById('lms-id').value = data.id;
-  document.getElementById('lms-grade').value = data.grade_level;
-  document.getElementById('lms-subject').value = data.subject;
-  document.getElementById('lms-type').value = data.material_type;
-  document.getElementById('lms-title').value = data.title;
-  document.getElementById('lms-description').value = data.description || '';
-  document.getElementById('lms-link').value = data.link_url || '';
-  document.getElementById('lms-file-url').value = data.file_url || '';
-  document.querySelector('[data-tab="lms"]').click();
-  window.scrollTo({top:0, behavior:'smooth'});
-};
-
-window.deleteLms = async function(id){
-  if(!confirm('Delete this material permanently?')) return;
-  await sb.from('lms_materials').delete().eq('id', id);
-  loadLms();
-};
-
-/* ---------------- COMMENTS ---------------- */
-function setupComments(){}
-
-async function loadComments(){
-  const list = document.getElementById('comments-list');
-  const { data, error } = await sb.from('comments').select('*, posts(title)').order('created_at', {ascending:false});
-  if(error){ list.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`; return; }
-  if(!data.length){ list.innerHTML = '<div class="empty">No comments yet.</div>'; return; }
-  list.innerHTML = data.map(c => `
-    <div class="admin-row">
-      <div class="info"><b>${escapeHtml(c.name)} <span class="badge ${c.approved?'live':'pending'}">${c.approved?'Approved':'Pending'}</span></b>
-      <span>on “${escapeHtml(c.posts ? c.posts.title : 'deleted post')}” · ${fmtDate(c.created_at)}</span>
-      <div style="margin-top:6px;color:var(--ink);font-size:14px">${escapeHtml(c.body)}</div></div>
-      <div class="btns">
-        ${!c.approved ? `<button class="btn-mini primary" onclick="approveComment('${c.id}')">Approve</button>` : ''}
-        <button class="btn-mini danger" onclick="deleteComment('${c.id}')">Delete</button>
-      </div>
-    </div>`).join('');
-}
-
-window.approveComment = async function(id){
-  await sb.from('comments').update({approved:true}).eq('id', id);
-  loadComments();
-};
-
-window.deleteComment = async function(id){
-  if(!confirm('Delete this comment?')) return;
-  await sb.from('comments').delete().eq('id', id);
-  loadComments();
-};
-
-/* ---------------- VISITS ---------------- */
-async function loadVisits(){
-  const totalEl = document.getElementById('visits-total');
-  const list = document.getElementById('visits-breakdown');
+// Logs one page view. Silent no-op if not configured or if it fails —
+// a tracking hiccup should never break the page for a visitor.
+async function trackVisit(){
+  if(!dbReady()) return;
   try{
-    const { total, breakdown } = await fetchVisitStats();
-    totalEl.textContent = total.toLocaleString();
-    if(!breakdown.length){
-      list.innerHTML = '<div class="empty">No visits logged yet.</div>';
-      return;
-    }
-    list.innerHTML = breakdown.map(([page,n]) => `
-      <div class="admin-row">
-        <div class="info"><b>${escapeHtml(page)}</b></div>
-        <div class="btns"><span class="badge live">${n.toLocaleString()} view${n===1?'':'s'}</span></div>
-      </div>`).join('');
-  }catch(e){
-    totalEl.textContent = '–';
-    list.innerHTML = `<div class="empty">${escapeHtml(e.message)}</div>`;
-  }
+    const { error } = await window.supabaseClient.from('site_visits').insert({
+      page: location.pathname.split('/').pop() || 'index.html',
+      referrer: document.referrer || null
+    });
+    if(error) console.warn('trackVisit failed:', error.message);
+  }catch(e){ console.warn('trackVisit failed:', e); }
+}
+
+// Admin-only: total visit count plus a per-page breakdown.
+async function fetchVisitStats(){
+  const { count, error: countErr } = await window.supabaseClient
+    .from('site_visits').select('*', { count: 'exact', head: true });
+  if(countErr) throw countErr;
+
+  const { data: rows, error: rowsErr } = await window.supabaseClient
+    .from('site_visits').select('page').limit(5000);
+  if(rowsErr) throw rowsErr;
+
+  const byPage = {};
+  (rows||[]).forEach(r=>{ const p=r.page||'(unknown)'; byPage[p]=(byPage[p]||0)+1; });
+  const breakdown = Object.entries(byPage).sort((a,b)=>b[1]-a[1]);
+
+  return { total: count||0, breakdown };
+}
+
+async function fetchLmsMaterials(){
+  const { data, error } = await window.supabaseClient
+    .from('lms_materials').select('*').order('created_at', {ascending:false});
+  if(error) throw error;
+  return data;
+}
+
+async function fetchIndicators(){
+  const { data, error } = await window.supabaseClient
+    .from('indicators').select('*').order('sort_order', {ascending:true}).order('created_at', {ascending:true});
+  if(error) throw error;
+  return data;
+}
+
+async function fetchHeadlines(){
+  const { data, error } = await window.supabaseClient
+    .from('headlines').select('*').order('sort_order', {ascending:true}).order('created_at', {ascending:false});
+  if(error) throw error;
+  return data;
 }
