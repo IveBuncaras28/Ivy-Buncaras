@@ -19,6 +19,14 @@
 <div class="eyebrow" style="color:var(--gold-l)">Get in touch</div>
 <h2 style="font-size:30px;margin:12px 0 18px">Let's build something that lasts</h2>
 <div id="social"></div>
+<div class="subscribe-box">
+<p class="subscribe-label">Get new posts by email</p>
+<form id="subscribe-form" class="subscribe-form">
+<input type="email" id="subscribe-email" placeholder="you@example.com" required>
+<button type="submit">Subscribe</button>
+</form>
+<p id="subscribe-msg" class="subscribe-msg"></p>
+</div>
 <p style="font-size:13px;color:#9aa3c0;margin-top:24px">© <span id="yr"></span> Ivy B. Buncaras · Masbate, Philippines</p>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -36,7 +44,7 @@
 
   grid.innerHTML=items.map(r=>`
     <article class="card reveal">
-      ${r.cover_url?`<img src="${r.cover_url}" alt="" style="width:100%;border-radius:2px;margin-bottom:14px">`:''}
+      ${r.cover_url?`<img src="${r.cover_url}" alt="" class="card-cover">`:''}
       <div class="chips"><span class="chip">${escapeHtml(r.venue)}</span></div>
       <h3>${escapeHtml(r.title)}</h3>
       <p>${escapeHtml(r.description||'')}</p>
