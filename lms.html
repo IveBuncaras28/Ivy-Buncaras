@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LMS — Ivy B. Buncaras</title>
+<link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head><body>
+<nav><div class="wrap"><a class="brand" href="index.html">Ivy B. Buncaras</a>
+<div class="links"><a href="about.html">About</a><a href="projects.html">Projects</a><a href="research.html">Research</a><a href="library.html">Library</a><a href="lms.html">LMS</a><a href="dashboard.html">Dashboard</a><a href="blog.html">Blog</a><a href="contact.html">Contact</a></div></div></nav>
+<header class="page-hero"><div class="wrap">
+<div class="eyebrow">Learning Resources</div>
+<h1>LMS — Lesson Materials</h1>
+<p>Lesson notes, PowerPoint presentations, Excel worksheets, and quizzes — browse by grade level and subject.</p>
+</div></header>
+
+<section id="lms"><div class="wrap">
+<div class="filters reveal" id="lms-grade-filters"></div>
+<div class="filters reveal" id="lms-subject-filters" style="margin-top:-16px"></div>
+<div class="grid" id="lms-grid"><div class="loading">Loading materials…</div></div>
+<div class="pagination" id="lms-pagination">
+  <button class="page-btn" id="lms-prev">← Previous</button>
+  <span class="page-indicator" id="lms-page-label"></span>
+  <button class="page-btn" id="lms-next">Next →</button>
+</div>
+</div></section>
+
+<footer id="contact-footer">
+<div class="eyebrow" style="color:var(--gold-l)">Get in touch</div>
+<h2 style="font-size:30px;margin:12px 0 18px">Let's build something that lasts</h2>
+<div id="social"></div>
+<p style="font-size:13px;color:#9aa3c0;margin-top:24px">© <span id="yr"></span> Ivy B. Buncaras · Masbate, Philippines</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/db.js"></script>
+<script src="assets/script.js"></script>
+<script>
+(async function(){
+  const grid = document.getElementById('lms-grid');
+  const gradeFiltersEl = document.getElementById('lms-grade-filters');
+  const subjectFiltersEl = document.getElementById('lms-subject-filters');
+  if(!dbReady()){ notConfiguredNotice(grid); return; }
+
+  let materials = [];
+  try{ materials = await fetchLmsMaterials(); }
+  catch(e){ grid.innerHTML = `<div class="empty">Couldn't load materials: ${escapeHtml(e.message)}</div>`; return; }
+  if(!materials.length){ grid.innerHTML = '<div class="empty">No materials added yet.</div>'; return; }
+
+  const card = m => `
+    <article class="card reveal">
+      <div class="chips">
+        <span class="chip">${escapeHtml(m.grade_level)}</span>
+        <span class="chip">${escapeHtml(m.subject)}</span>
+      </div>
+      <span class="badge live">${escapeHtml(m.material_type)}</span>
+      <h3 style="margin-top:10px">${escapeHtml(m.title)}</h3>
+      <p>${escapeHtml(m.description||'')}</p>
+      ${m.file_url ? `<a class="more" href="${m.file_url}" target="_blank" rel="noopener">Download →</a> ` : ''}
+      ${m.link_url ? `<a class="more" href="${m.link_url}" target="_blank" rel="noopener">Open →</a>` : ''}
+    </article>`;
+
+  let currentGrade = 'All', currentSubject = 'All';
+  const paginator = makePaginator(
+    () => materials.filter(m =>
+      (currentGrade === 'All' || m.grade_level === currentGrade) &&
+      (currentSubject === 'All' || m.subject === currentSubject)
+    ),
+    6,
+    pageItems => { grid.innerHTML = pageItems.map(card).join(''); if(window.obs) obs(); },
+    document.getElementById('lms-pagination'),
+    document.getElementById('lms-prev'),
+    document.getElementById('lms-next'),
+    document.getElementById('lms-page-label')
+  );
+
+  const GRADE_ORDER = ['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8','Grade 9','Grade 10','Grade 11','Grade 12'];
+  const gradesPresent = GRADE_ORDER.filter(g => materials.some(m => m.grade_level === g));
+  const otherGrades = [...new Set(materials.map(m=>m.grade_level))].filter(g => !GRADE_ORDER.includes(g));
+  const grades = ['All', ...gradesPresent, ...otherGrades];
+
+  gradeFiltersEl.innerHTML = grades.map((g,i)=>`<button class="${i?'':'on'}">${escapeHtml(g)}</button>`).join('');
+  gradeFiltersEl.querySelectorAll('button').forEach(b => b.onclick = () => {
+    gradeFiltersEl.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    currentGrade = b.textContent;
+    renderSubjectFilters();
+    paginator.reset();
+  });
+
+  function renderSubjectFilters(){
+    const pool = currentGrade === 'All' ? materials : materials.filter(m => m.grade_level === currentGrade);
+    const subjects = ['All', ...new Set(pool.map(m => m.subject))];
+    if(!subjects.includes(currentSubject)) currentSubject = 'All';
+    subjectFiltersEl.innerHTML = subjects.map(s => `<button class="${s===currentSubject?'on':''}">${escapeHtml(s)}</button>`).join('');
+    subjectFiltersEl.querySelectorAll('button').forEach(b => b.onclick = () => {
+      subjectFiltersEl.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      currentSubject = b.textContent;
+      paginator.reset();
+    });
+  }
+
+  renderSubjectFilters();
+  paginator.render();
+})();
+</script>
+</body></html>
