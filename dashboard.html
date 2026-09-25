@@ -16,11 +16,21 @@
 <section id="indicators"><div class="wrap">
 <div class="filters reveal" id="ind-filters" style="display:none"></div>
 <div class="grid" id="indicators-grid"><div class="loading">Loading indicators…</div></div>
+<div class="pagination" id="indicators-pagination">
+  <button class="page-btn" id="indicators-prev">← Previous</button>
+  <span class="page-indicator" id="indicators-page-label"></span>
+  <button class="page-btn" id="indicators-next">Next →</button>
+</div>
 </div></section>
 
 <section id="headlines" class="alt"><div class="wrap">
 <div class="sec-h reveal"><div class="eyebrow">Curated</div><h2>Education Headlines</h2><div class="rule"></div></div>
 <div id="headlines-list"><div class="loading">Loading headlines…</div></div>
+<div class="pagination" id="headlines-pagination">
+  <button class="page-btn" id="headlines-prev">← Previous</button>
+  <span class="page-indicator" id="headlines-page-label"></span>
+  <button class="page-btn" id="headlines-next">Next →</button>
+</div>
 <p class="note reveal" style="margin-top:30px">Figures update as new official reports are released — not in real time. Each card links to its source.</p>
 </div></section>
 
@@ -28,6 +38,14 @@
 <div class="eyebrow" style="color:var(--gold-l)">Get in touch</div>
 <h2 style="font-size:30px;margin:12px 0 18px">Let's build something that lasts</h2>
 <div id="social"></div>
+<div class="subscribe-box">
+<p class="subscribe-label">Get new posts by email</p>
+<form id="subscribe-form" class="subscribe-form">
+<input type="email" id="subscribe-email" placeholder="you@example.com" required>
+<button type="submit">Subscribe</button>
+</form>
+<p id="subscribe-msg" class="subscribe-msg"></p>
+</div>
 <p style="font-size:13px;color:#9aa3c0;margin-top:24px">© <span id="yr"></span> Ivy B. Buncaras · Masbate, Philippines</p>
 </footer>
 
@@ -54,28 +72,49 @@
           ${i.sublabel?`<div class="sub">${escapeHtml(i.sublabel)}</div>`:''}
           ${i.source_label?`<div class="src">Source: ${i.source_url?`<a href="${i.source_url}" target="_blank" rel="noopener">${escapeHtml(i.source_label)}</a>`:escapeHtml(i.source_label)}</div>`:''}
         </div>`;
-      const render=f=>{ grid.innerHTML=items.filter(i=>f==='All'||i.category===f).map(card).join(''); if(window.obs) obs(); };
+      let currentCat='All';
+      const paginator=makePaginator(
+        ()=>items.filter(i=>currentCat==='All'||i.category===currentCat),
+        6,
+        pageItems=>{ grid.innerHTML=pageItems.map(card).join(''); if(window.obs) obs(); },
+        document.getElementById('indicators-pagination'),
+        document.getElementById('indicators-prev'),
+        document.getElementById('indicators-next'),
+        document.getElementById('indicators-page-label')
+      );
       const cats=['All',...new Set(items.map(i=>i.category))];
       if(cats.length>2){
         filtersEl.style.display='flex';
         filtersEl.innerHTML=cats.map((c,idx)=>`<button class="${idx?'':'on'}">${escapeHtml(c)}</button>`).join('');
-        filtersEl.querySelectorAll('button').forEach(b=>b.onclick=()=>{filtersEl.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');render(b.textContent);});
+        filtersEl.querySelectorAll('button').forEach(b=>b.onclick=()=>{filtersEl.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');currentCat=b.textContent;paginator.reset();});
       }
-      render('All');
+      paginator.render();
     }
   }catch(e){ grid.innerHTML = `<div class="empty">Couldn't load indicators: ${escapeHtml(e.message)}</div>`; }
 
   try{
-    const heads = (await fetchHeadlines()).slice(0, 10);
+    const heads = await fetchHeadlines();
     if(!heads.length){ list.innerHTML='<div class="empty">No headlines added yet.</div>'; }
-    else list.innerHTML = heads.map(h => `
-      <div class="headline-row reveal">
-        <div>
-          <a class="htitle" href="${h.source_url}" target="_blank" rel="noopener">${escapeHtml(h.title)}</a>
-          <div class="hmeta">${escapeHtml(h.source_label||'')}${h.published_date?` · ${escapeHtml(h.published_date)}`:''}</div>
-        </div>
-        <a class="hgo" href="${h.source_url}" target="_blank" rel="noopener">Read →</a>
-      </div>`).join('');
+    else{
+      const row=h => `
+        <div class="headline-row reveal">
+          <div>
+            <a class="htitle" href="${h.source_url}" target="_blank" rel="noopener">${escapeHtml(h.title)}</a>
+            <div class="hmeta">${escapeHtml(h.source_label||'')}${h.published_date?` · ${escapeHtml(h.published_date)}`:''}</div>
+          </div>
+          <a class="hgo" href="${h.source_url}" target="_blank" rel="noopener">Read →</a>
+        </div>`;
+      const paginator=makePaginator(
+        ()=>heads,
+        6,
+        pageItems=>{ list.innerHTML=pageItems.map(row).join(''); if(window.obs) obs(); },
+        document.getElementById('headlines-pagination'),
+        document.getElementById('headlines-prev'),
+        document.getElementById('headlines-next'),
+        document.getElementById('headlines-page-label')
+      );
+      paginator.render();
+    }
   }catch(e){ list.innerHTML = `<div class="empty">Couldn't load headlines: ${escapeHtml(e.message)}</div>`; }
 
   if(window.obs) obs();
