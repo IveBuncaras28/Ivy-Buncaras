@@ -14,6 +14,11 @@
 </div></header>
 <section id="blog"><div class="wrap">
 <div class="grid" id="posts-grid"><div class="loading">Loading posts…</div></div>
+<div class="pagination" id="posts-pagination">
+  <button class="page-btn" id="posts-prev">← Previous</button>
+  <span class="page-indicator" id="posts-page-label"></span>
+  <button class="page-btn" id="posts-next">Next →</button>
+</div>
 </div></section>
 <footer id="contact-footer">
 <div class="eyebrow" style="color:var(--gold-l)">Get in touch</div>
@@ -32,14 +37,23 @@
   try{
     const posts = await fetchPublishedPosts();
     if(!posts.length){ grid.innerHTML = '<div class="empty">No posts published yet — check back soon.</div>'; return; }
-    grid.innerHTML = posts.map(p => `
+    const card = p => `
       <a class="card reveal post-card" href="post.html?slug=${encodeURIComponent(p.slug)}">
         ${p.cover_url ? `<img class="post-cover" src="${p.cover_url}" alt="">` : ''}
         <div class="post-date">${fmtDate(p.created_at)}</div>
         <h3>${escapeHtml(p.title)}</h3>
         <p class="post-excerpt">${escapeHtml(p.excerpt || '')}</p>
-      </a>`).join('');
-    if(window.obs) obs();
+      </a>`;
+    const paginator = makePaginator(
+      () => posts,
+      6,
+      pageItems => { grid.innerHTML = pageItems.map(card).join(''); if(window.obs) obs(); },
+      document.getElementById('posts-pagination'),
+      document.getElementById('posts-prev'),
+      document.getElementById('posts-next'),
+      document.getElementById('posts-page-label')
+    );
+    paginator.render();
   }catch(e){
     grid.innerHTML = `<div class="empty">Couldn't load posts right now.</div>`;
     console.error(e);
