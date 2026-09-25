@@ -15,6 +15,11 @@
 <section id="projects"><div class="wrap">
 <div class="filters reveal" id="filters" style="display:none"></div>
 <div class="grid" id="projects-grid"><div class="loading">Loading projects…</div></div>
+<div class="pagination" id="projects-pagination">
+  <button class="page-btn" id="projects-prev">← Previous</button>
+  <span class="page-indicator" id="projects-page-label"></span>
+  <button class="page-btn" id="projects-next">Next →</button>
+</div>
 </div></section>
 <footer id="contact-footer">
 <div class="eyebrow" style="color:var(--gold-l)">Get in touch</div>
@@ -43,14 +48,23 @@
       <p>${escapeHtml(p.description||'')}</p>
       ${p.link_url?`<a class="more" href="${p.link_url}" target="_blank" rel="noopener">View →</a>`:''}
     </article>`;
-  const render=f=>{ grid.innerHTML=projects.filter(p=>f==='All'||p.category===f).map(card).join(''); if(window.obs) obs(); };
+  let currentCat='All';
+  const paginator=makePaginator(
+    ()=>projects.filter(p=>currentCat==='All'||p.category===currentCat),
+    6,
+    pageItems=>{ grid.innerHTML=pageItems.map(card).join(''); if(window.obs) obs(); },
+    document.getElementById('projects-pagination'),
+    document.getElementById('projects-prev'),
+    document.getElementById('projects-next'),
+    document.getElementById('projects-page-label')
+  );
   const cats=['All',...new Set(projects.map(p=>p.category))];
   if(cats.length>2){
     filtersEl.style.display='flex';
     filtersEl.innerHTML=cats.map((c,i)=>`<button class="${i?'':'on'}">${escapeHtml(c)}</button>`).join('');
-    filtersEl.querySelectorAll('button').forEach(b=>b.onclick=()=>{filtersEl.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');render(b.textContent);});
+    filtersEl.querySelectorAll('button').forEach(b=>b.onclick=()=>{filtersEl.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');currentCat=b.textContent;paginator.reset();});
   }
-  render('All');
+  paginator.render();
 })();
 </script>
 </body></html>
