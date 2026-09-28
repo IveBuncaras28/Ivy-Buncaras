@@ -1,17 +1,15 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="google-adsense-account" content="ca-pub-1885292916235624">
 <title>Admin — Ivy B. Buncaras</title>
 <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="assets/favicon-48.png">
 <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1885292916235624"
-     crossorigin="anonymous"></script>
 </head><body>
 <nav><div class="wrap"><a class="brand" href="index.html">Ivy B. Buncaras</a>
 <div class="links"><a href="index.html">← Back to site</a></div></div></nav>
@@ -52,6 +50,7 @@
     <button data-tab="trainings">Trainings</button>
     <button data-tab="books">Library</button>
     <button data-tab="lms">LMS</button>
+    <button data-tab="jobmarket">Job Market</button>
     <button data-tab="phdashboard">PH Dashboard</button>
     <button data-tab="comments">Comments</button>
     <button data-tab="visits">Visits</button>
@@ -193,7 +192,6 @@
             <option>Grade 4</option><option>Grade 5</option><option>Grade 6</option>
             <option>Grade 7</option><option>Grade 8</option><option>Grade 9</option>
             <option>Grade 10</option><option>Grade 11</option><option>Grade 12</option>
-            <option>College</option>
           </select>
         </div>
         <div><label>Subject</label><input type="text" id="lms-subject" placeholder="e.g. Mathematics, Filipino, Science" required></div>
@@ -206,14 +204,19 @@
             <option>PowerPoint</option>
             <option>Excel</option>
             <option>Quiz</option>
+            <option>Article</option>
           </select>
         </div>
         <div><label>Title</label><input type="text" id="lms-title" required></div>
       </div>
       <div><label>Description</label><textarea id="lms-description"></textarea></div>
-      <div class="row2">
+      <div class="row2" id="lms-file-row">
         <div><label>Upload file (PDF, PPTX, XLSX, DOCX…)</label><input type="file" id="lms-file-file"><input type="hidden" id="lms-file-url"></div>
         <div><label>External link (optional — Google Drive, Forms, etc.)</label><input type="text" id="lms-link"></div>
+      </div>
+      <div id="lms-body-row" style="display:none">
+        <label>Lesson Content (Markdown — shown as a reading page, like your Blog posts)</label>
+        <textarea id="lms-body" style="min-height:260px"></textarea>
       </div>
       <div class="actions">
         <button class="btn-mini primary" type="submit">Save Material</button>
@@ -223,6 +226,19 @@
     </form>
     <div class="panel-head"><h2>All Materials</h2></div>
     <div class="admin-list" id="lms-list"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- JOB MARKET -->
+  <div class="admin-panel" id="panel-jobmarket">
+    <div class="panel-head"><h2>Global Job Market</h2><p>Live hiring counts by country, pulled from the Adzuna Jobs API and shown as a world map on your Blog page.</p></div>
+    <div class="stat-hero"><span id="jobmarket-count">–</span><label>countries tracked</label></div>
+    <p id="jobmarket-updated" style="color:var(--muted);font-size:14px;margin-top:10px"></p>
+    <div class="actions" style="margin-top:18px">
+      <button class="btn-mini primary" id="jobmarket-refresh">Refresh Job Market Data</button>
+      <span id="jobmarket-msg"></span>
+    </div>
+    <div class="panel-head" style="margin-top:36px"><h2>Current Numbers</h2></div>
+    <div class="admin-list" id="jobmarket-list"><div class="loading">Loading…</div></div>
   </div>
 
   <!-- PH DASHBOARD -->
