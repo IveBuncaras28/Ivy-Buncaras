@@ -5,6 +5,7 @@
 <title>LMS — Ivy B. Buncaras</title>
 <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="assets/favicon-48.png">
 <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,10 +19,9 @@
 <header class="page-hero"><div class="wrap">
 <div class="eyebrow">Learning Resources</div>
 <h1>LMS — Lesson Materials</h1>
-<p>Lesson notes, PowerPoint presentations, Excel worksheets, and quizzes — browse by grade level and subject.</p>
+<p>Lesson notes, PowerPoint presentations, Excel worksheets, quizzes, and articles — browse by grade level and subject.</p>
 </div></header>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1885292916235624"
-     crossorigin="anonymous"></script>
+
 <!-- Ads1 -->
 <ins class="adsbygoogle"
      style="display:block"
@@ -40,9 +40,22 @@
      data-full-width="">
   <div overflow=""></div>
 </amp-ad>
+
 <section id="lms"><div class="wrap">
+
+<div class="lms-search reveal">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+  <input type="text" id="lms-search-input" placeholder="Search lesson notes, quizzes, articles…">
+</div>
+
+<div class="lms-recent reveal" id="lms-recent-wrap" style="display:none">
+  <h3>Pick up where you left off</h3>
+  <div class="lms-recent-track" id="lms-recent-track"></div>
+</div>
+
 <div class="filters reveal" id="lms-grade-filters"></div>
 <div class="filters reveal" id="lms-subject-filters" style="margin-top:-16px"></div>
+<div class="filters reveal" id="lms-type-filters" style="margin-top:-16px"></div>
 <div class="grid" id="lms-grid"><div class="loading">Loading materials…</div></div>
 <div class="pagination" id="lms-pagination">
   <button class="page-btn" id="lms-prev">← Previous</button>
@@ -67,6 +80,8 @@
   const grid = document.getElementById('lms-grid');
   const gradeFiltersEl = document.getElementById('lms-grade-filters');
   const subjectFiltersEl = document.getElementById('lms-subject-filters');
+  const typeFiltersEl = document.getElementById('lms-type-filters');
+  const searchInput = document.getElementById('lms-search-input');
   if(!dbReady()){ notConfiguredNotice(grid); return; }
 
   let materials = [];
@@ -74,32 +89,60 @@
   catch(e){ grid.innerHTML = `<div class="empty">Couldn't load materials: ${escapeHtml(e.message)}</div>`; return; }
   if(!materials.length){ grid.innerHTML = '<div class="empty">No materials added yet.</div>'; return; }
 
-  const card = m => `
-    <article class="card reveal">
-      <div class="chips">
-        <span class="chip">${escapeHtml(m.grade_level)}</span>
-        <span class="chip">${escapeHtml(m.subject)}</span>
-      </div>
-      <span class="badge live">${escapeHtml(m.material_type)}</span>
-      <h3 style="margin-top:10px">${escapeHtml(m.title)}</h3>
-      <p>${escapeHtml(m.description||'')}</p>
-      ${m.file_url ? `<a class="more" href="${m.file_url}" target="_blank" rel="noopener">Download →</a> ` : ''}
-      ${m.link_url ? `<a class="more" href="${m.link_url}" target="_blank" rel="noopener">Open →</a>` : ''}
-    </article>`;
+  const TYPE_ICON = { 'Lesson Notes':'📄', 'PowerPoint':'📊', 'Excel':'📈', 'Quiz':'📝', 'Article':'📖' };
+  const byId = {}; materials.forEach(m => byId[m.id] = m);
 
-  let currentGrade = 'All', currentSubject = 'All';
+  // ----- "Pick up where you left off" -----
+  function renderRecent(){
+    let recentIds = [];
+    try{ recentIds = JSON.parse(localStorage.getItem('lms_recent') || '[]'); }catch(e){}
+    const recentItems = recentIds.map(id => byId[id]).filter(Boolean).slice(0, 8);
+    const wrap = document.getElementById('lms-recent-wrap');
+    if(!recentItems.length){ wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+    document.getElementById('lms-recent-track').innerHTML = recentItems.map(m => `
+      <a class="lms-recent-card" href="viewer.html?id=${encodeURIComponent(m.id)}">
+        <div class="ic">${TYPE_ICON[m.material_type] || '📄'}</div>
+        <div class="t">${escapeHtml(m.title)}</div>
+        <div class="m">${escapeHtml(m.grade_level)} · ${escapeHtml(m.subject)}</div>
+      </a>`).join('');
+  }
+  renderRecent();
+
+  // ----- Cards -----
+  const card = m => `
+    <a class="card reveal lms-card" href="viewer.html?id=${encodeURIComponent(m.id)}">
+      <div class="lms-thumb"><span>${TYPE_ICON[m.material_type] || '📄'}</span><span class="grade-badge">${escapeHtml(m.grade_level)}</span></div>
+      <div class="type-line">${escapeHtml(m.material_type)}</div>
+      <h3>${escapeHtml(m.title)}</h3>
+      <div class="subject-line">${escapeHtml(m.subject)}</div>
+      <p>${escapeHtml(m.description||'')}</p>
+    </a>`;
+
+  let currentGrade = 'All', currentSubject = 'All', currentType = 'All', searchTerm = '';
+
   const paginator = makePaginator(
     () => materials.filter(m =>
       (currentGrade === 'All' || m.grade_level === currentGrade) &&
-      (currentSubject === 'All' || m.subject === currentSubject)
+      (currentSubject === 'All' || m.subject === currentSubject) &&
+      (currentType === 'All' || m.material_type === currentType) &&
+      (!searchTerm || (m.title + ' ' + m.subject + ' ' + (m.description||'')).toLowerCase().includes(searchTerm))
     ),
     6,
-    pageItems => { grid.innerHTML = pageItems.map(card).join(''); if(window.obs) obs(); },
+    pageItems => {
+      grid.innerHTML = pageItems.length ? pageItems.map(card).join('') : '<div class="empty">No materials match your search/filters.</div>';
+      if(window.obs) obs();
+    },
     document.getElementById('lms-pagination'),
     document.getElementById('lms-prev'),
     document.getElementById('lms-next'),
     document.getElementById('lms-page-label')
   );
+
+  searchInput.addEventListener('input', () => {
+    searchTerm = searchInput.value.trim().toLowerCase();
+    paginator.reset();
+  });
 
   const GRADE_ORDER = ['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8','Grade 9','Grade 10','Grade 11','Grade 12'];
   const gradesPresent = GRADE_ORDER.filter(g => materials.some(m => m.grade_level === g));
@@ -128,8 +171,18 @@
     });
   }
 
+  const typesPresent = ['All', ...new Set(materials.map(m => m.material_type))];
+  typeFiltersEl.innerHTML = typesPresent.map((t,i)=>`<button class="${i?'':'on'}">${escapeHtml(t)}</button>`).join('');
+  typeFiltersEl.querySelectorAll('button').forEach(b => b.onclick = () => {
+    typeFiltersEl.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    currentType = b.textContent;
+    paginator.reset();
+  });
+
   renderSubjectFilters();
   paginator.render();
+  if(window.obs) obs();
 })();
 </script>
 </body></html>
