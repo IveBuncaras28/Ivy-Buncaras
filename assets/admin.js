@@ -46,6 +46,7 @@ async function init(){
   setupPHDashboard();
   setupBooks();
   setupLms();
+  setupJobMarket();
   setupComments();
 }
 
@@ -54,7 +55,7 @@ function showDashboard(email){
   loginScreen.style.display='none'; dashboard.style.display='block';
   const who=document.getElementById('who-email');
   if(who && email) who.textContent = email;
-  loadPosts(); loadProjects(); loadResearch(); loadTrainings(); loadIndicators(); loadHeadlines(); loadBooks(); loadLms(); loadComments(); loadVisits();
+  loadPosts(); loadProjects(); loadResearch(); loadTrainings(); loadIndicators(); loadHeadlines(); loadBooks(); loadLms(); loadJobMarket(); loadComments(); loadVisits();
 }
 
 function slugify(s){
@@ -699,20 +700,30 @@ function setupLms(){
     }catch(e){ msg.innerHTML = `<div class="msg err">Upload failed: ${escapeHtml(e.message)}</div>`; }
   });
 
+  document.getElementById('lms-type').addEventListener('change', toggleLmsFields);
+  toggleLmsFields();
+
   document.getElementById('lms-cancel').addEventListener('click', resetLmsForm);
 
   document.getElementById('lms-form').addEventListener('submit', async (ev)=>{
     ev.preventDefault();
     const msg = document.getElementById('lms-msg');
     const id = document.getElementById('lms-id').value;
+    const type = document.getElementById('lms-type').value;
+    const body = document.getElementById('lms-body').value.trim();
+    if(type === 'Article' && !body){
+      msg.innerHTML = '<div class="msg err">Please write the lesson content for this article.</div>';
+      return;
+    }
     const row = {
       grade_level: document.getElementById('lms-grade').value,
       subject: document.getElementById('lms-subject').value.trim(),
-      material_type: document.getElementById('lms-type').value,
+      material_type: type,
       title: document.getElementById('lms-title').value.trim(),
       description: document.getElementById('lms-description').value.trim(),
       link_url: document.getElementById('lms-link').value.trim() || null,
-      file_url: document.getElementById('lms-file-url').value || null
+      file_url: type === 'Article' ? null : (document.getElementById('lms-file-url').value || null),
+      body: type === 'Article' ? body : null
     };
     try{
       if(id){
@@ -728,11 +739,19 @@ function setupLms(){
   });
 }
 
+function toggleLmsFields(){
+  const isArticle = document.getElementById('lms-type').value === 'Article';
+  document.getElementById('lms-file-row').style.display = isArticle ? 'none' : 'grid';
+  document.getElementById('lms-body-row').style.display = isArticle ? 'block' : 'none';
+}
+
 function resetLmsForm(){
   document.getElementById('lms-form').reset();
   document.getElementById('lms-id').value = '';
   document.getElementById('lms-file-url').value = '';
+  document.getElementById('lms-body').value = '';
   document.getElementById('lms-msg').textContent = '';
+  toggleLmsFields();
 }
 
 async function loadLms(){
@@ -762,6 +781,8 @@ window.editLms = async function(id){
   document.getElementById('lms-description').value = data.description || '';
   document.getElementById('lms-link').value = data.link_url || '';
   document.getElementById('lms-file-url').value = data.file_url || '';
+  document.getElementById('lms-body').value = data.body || '';
+  toggleLmsFields();
   document.querySelector('[data-tab="lms"]').click();
   window.scrollTo({top:0, behavior:'smooth'});
 };
@@ -771,6 +792,49 @@ window.deleteLms = async function(id){
   await sb.from('lms_materials').delete().eq('id', id);
   loadLms();
 };
+
+/* ---------------- JOB MARKET ---------------- */
+function setupJobMarket(){
+  document.getElementById('jobmarket-refresh').addEventListener('click', async ()=>{
+    const btn = document.getElementById('jobmarket-refresh');
+    const msg = document.getElementById('jobmarket-msg');
+    btn.disabled = true;
+    msg.textContent = 'Refreshing from Adzuna… this can take a few seconds.';
+    try{
+      const { data, error } = await sb.functions.invoke('refresh-job-market');
+      if(error) throw error;
+      if(data && data.ok === false) throw new Error(data.error || 'Unknown error');
+      const failNote = (data && data.failures && data.failures.length) ? ` (${data.failures.length} country calls failed)` : '';
+      msg.innerHTML = `<div class="msg ok">Updated ${data.updated} countries.${failNote}</div>`;
+      loadJobMarket();
+    }catch(e){
+      msg.innerHTML = `<div class="msg err">Refresh failed: ${escapeHtml(e.message)}</div>`;
+    }finally{
+      btn.disabled = false;
+    }
+  });
+}
+
+async function loadJobMarket(){
+  const list = document.getElementById('jobmarket-list');
+  const countEl = document.getElementById('jobmarket-count');
+  const updatedEl = document.getElementById('jobmarket-updated');
+  const { data, error } = await sb.from('job_market_cache').select('*').order('job_count', {ascending:false});
+  if(error){ list.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`; return; }
+  countEl.textContent = data.length;
+  if(!data.length){
+    list.innerHTML = '<div class="empty">No data yet — click "Refresh Job Market Data" above.</div>';
+    updatedEl.textContent = '';
+    return;
+  }
+  const latest = data.reduce((a,b)=> new Date(a.updated_at) > new Date(b.updated_at) ? a : b);
+  updatedEl.textContent = `Last refreshed ${fmtDate(latest.updated_at)}`;
+  list.innerHTML = data.map(d => `
+    <div class="admin-row">
+      <div class="info"><b>${escapeHtml(d.country_name)}</b>
+      <span>${d.job_count.toLocaleString()} open postings</span></div>
+    </div>`).join('');
+}
 
 /* ---------------- COMMENTS ---------------- */
 function setupComments(){}
