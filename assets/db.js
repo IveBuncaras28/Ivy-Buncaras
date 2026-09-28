@@ -123,7 +123,21 @@ async function fetchHeadlines(){
 
 async function fetchLmsMaterials(){
   const { data, error } = await window.supabaseClient
-    .from('lms_materials').select('*').order('sort_order', {ascending:true}).order('created_at', {ascending:false});
+    .from('lms_materials').select('*').order('sort_order', {ascending:true}).order('created_at', {ascending:true});
+  if(error) throw error;
+  return data;
+}
+
+async function fetchLmsMaterialById(id){
+  const { data, error } = await window.supabaseClient
+    .from('lms_materials').select('*').eq('id', id).maybeSingle();
+  if(error) throw error;
+  return data;
+}
+
+async function fetchJobMarketData(){
+  const { data, error } = await window.supabaseClient
+    .from('job_market_cache').select('*').order('job_count', {ascending:false});
   if(error) throw error;
   return data;
 }
