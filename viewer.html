@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Viewer — Ivy B. Buncaras</title>
+<link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="assets/favicon-48.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head><body>
+<nav><div class="wrap"><a class="brand" href="index.html">Ivy B. Buncaras</a>
+<div class="links"><a href="about.html">About</a><a href="projects.html">Projects</a><a href="research.html">Research</a><a href="library.html">Library</a><a href="lms.html">LMS</a><a href="dashboard.html">Dashboard PH</a><a href="blog.html">Blog</a><a href="contact.html">Contact</a></div></div></nav>
+<header class="page-hero"><div class="wrap">
+<div class="eyebrow"><a href="lms.html" style="color:var(--gold-l)">← Back to LMS</a></div>
+<h1 id="v-title">Loading…</h1>
+<p id="v-meta"></p>
+</div></header>
+
+<section><div class="wrap" id="v-body">
+  <div class="loading">Loading…</div>
+</div></section>
+
+<footer id="contact-footer">
+<div class="eyebrow" style="color:var(--gold-l)">Get in touch</div>
+<h2 style="font-size:30px;margin:12px 0 18px">Let's build something that lasts</h2>
+<div id="social"></div>
+<p style="font-size:13px;color:#9aa3c0;margin-top:24px">© <span id="yr"></span> Ivy B. Buncaras · Masbate, Philippines</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/db.js"></script>
+<script src="assets/script.js"></script>
+<script>
+(async function(){
+  const titleEl = document.getElementById('v-title');
+  const metaEl = document.getElementById('v-meta');
+  const bodyEl = document.getElementById('v-body');
+  const id = new URLSearchParams(location.search).get('id');
+
+  if(!dbReady()){ titleEl.textContent = 'Not connected'; notConfiguredNotice(bodyEl); return; }
+  if(!id){ titleEl.textContent = 'Not found'; bodyEl.innerHTML = '<div class="empty">No material was specified.</div>'; return; }
+
+  let m;
+  try{ m = await fetchLmsMaterialById(id); }
+  catch(e){ titleEl.textContent = 'Error'; bodyEl.innerHTML = `<div class="empty">Couldn't load this material: ${escapeHtml(e.message)}</div>`; return; }
+  if(!m){ titleEl.textContent = 'Not found'; bodyEl.innerHTML = '<div class="empty">This material doesn\'t exist.</div>'; return; }
+
+  document.title = m.title + ' — Ivy B. Buncaras';
+  titleEl.textContent = m.title;
+  metaEl.textContent = `${m.grade_level} · ${m.subject} · ${m.material_type}`;
+
+  // ----- Track as "recently viewed" (per-browser, local only) -----
+  try{
+    let recent = JSON.parse(localStorage.getItem('lms_recent') || '[]');
+    recent = recent.filter(x => x !== m.id);
+    recent.unshift(m.id);
+    localStorage.setItem('lms_recent', JSON.stringify(recent.slice(0, 12)));
+  }catch(e){}
+
+  // ----- Article: Britannica-style reading view -----
+  if(m.material_type === 'Article'){
+    const words = (m.body||'').trim().split(/\s+/).filter(Boolean).length;
+    const mins = Math.max(1, Math.round(words / 200));
+    bodyEl.innerHTML = `
+      <div class="encyclopedia-meta">${mins} min read${m.description ? ' · ' + escapeHtml(m.description) : ''}</div>
+      <div class="encyclopedia-rule"></div>
+      <div class="post-body encyclopedia-body">${renderMarkdown(m.body || '*No content yet.*')}</div>
+    `;
+    if(window.obs) obs();
+    return;
+  }
+
+  // ----- File-based material: inline preview + download -----
+  const downloadBtn = m.file_url ? `<a class="btn p" href="${m.file_url}" target="_blank" rel="noopener" download>Download</a>` : '';
+  const openLinkBtn = m.link_url ? `<a class="btn s" href="${m.link_url}" target="_blank" rel="noopener">Open Link →</a>` : '';
+
+  let previewHtml = '';
+  if(m.file_url){
+    const ext = (m.file_url.split('?')[0].split('.').pop() || '').toLowerCase();
+    const officeExts = ['doc','docx','ppt','pptx','xls','xlsx'];
+    if(ext === 'pdf'){
+      previewHtml = `<div class="viewer-frame-wrap"><iframe src="${m.file_url}"></iframe></div>`;
+    } else if(officeExts.includes(ext)){
+      const officeUrl = 'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(m.file_url);
+      previewHtml = `<div class="viewer-frame-wrap"><iframe src="${officeUrl}"></iframe></div>`;
+    } else {
+      previewHtml = `<div class="viewer-fallback">Preview isn't available for this file type — use Download to view it.</div>`;
+    }
+  } else {
+    previewHtml = `<div class="viewer-fallback">${m.link_url ? 'This material links to an external resource.' : 'No file attached to this material yet.'}</div>`;
+  }
+
+  bodyEl.innerHTML = `
+    <div class="viewer-head">
+      <p style="color:var(--muted);max-width:60ch;margin:0">${escapeHtml(m.description||'')}</p>
+      <div class="viewer-actions">${downloadBtn} ${openLinkBtn}</div>
+    </div>
+    ${previewHtml}
+  `;
+  if(window.obs) obs();
+})();
+</script>
+</body></html>
