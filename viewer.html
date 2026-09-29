@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
 </head><body>
-<nav><div class="wrap"><a class="brand" href="index.html">Ivy B. Buncaras</a>
+<nav><div class="wrap"><a class="brand" href="index.html" aria-label="Ivy B. Buncaras"><img src="assets/favicon-48.png" alt="Ivy B. Buncaras"></a>
 <div class="links"><a href="about.html">About</a><a href="projects.html">Projects</a><a href="research.html">Research</a><a href="library.html">Library</a><a href="lms.html">LMS</a><a href="dashboard.html">Dashboard PH</a><a href="blog.html">Blog</a><a href="contact.html">Contact</a></div></div></nav>
 <header class="page-hero"><div class="wrap">
 <div class="eyebrow"><a href="lms.html" style="color:var(--gold-l)">← Back to LMS</a></div>
@@ -66,11 +66,28 @@
   if(m.material_type === 'Article'){
     const words = (m.body||'').trim().split(/\s+/).filter(Boolean).length;
     const mins = Math.max(1, Math.round(words / 200));
+    const lastUpdated = m.updated_at || m.created_at;
     bodyEl.innerHTML = `
-      <div class="encyclopedia-meta">${mins} min read${m.description ? ' · ' + escapeHtml(m.description) : ''}</div>
+      <div class="encyclopedia-meta">Last updated ${fmtDate(lastUpdated)} · ${mins} min read${m.description ? ' · ' + escapeHtml(m.description) : ''}</div>
       <div class="encyclopedia-rule"></div>
-      <div class="post-body encyclopedia-body">${renderMarkdown(m.body || '*No content yet.*')}</div>
+      <div class="encyclopedia-layout">
+        <aside class="encyclopedia-toc" id="v-toc"></aside>
+        <div class="post-body encyclopedia-body" id="v-article-body">${renderMarkdown(m.body || '*No content yet.*')}</div>
+      </div>
     `;
+    const headings = document.querySelectorAll('#v-article-body h2, #v-article-body h3');
+    const toc = document.getElementById('v-toc');
+    if(headings.length >= 2){
+      const links = [];
+      headings.forEach((h, i) => {
+        const slug = 'sec-' + i + '-' + h.textContent.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+        h.id = slug;
+        links.push(`<a href="#${slug}" class="toc-${h.tagName.toLowerCase()}">${escapeHtml(h.textContent)}</a>`);
+      });
+      toc.innerHTML = `<div class="toc-label">In this lesson</div>${links.join('')}`;
+    } else {
+      toc.style.display = 'none';
+    }
     if(window.obs) obs();
     return;
   }
