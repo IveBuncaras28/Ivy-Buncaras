@@ -723,7 +723,8 @@ function setupLms(){
       description: document.getElementById('lms-description').value.trim(),
       link_url: document.getElementById('lms-link').value.trim() || null,
       file_url: type === 'Article' ? null : (document.getElementById('lms-file-url').value || null),
-      body: type === 'Article' ? body : null
+      body: type === 'Article' ? body : null,
+      updated_at: new Date().toISOString()
     };
     try{
       if(id){
