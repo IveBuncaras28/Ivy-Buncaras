@@ -15,10 +15,6 @@
 <div class="mega-nav">
   <div class="wrap">
     <details class="mega-drop">
-      <summary>Grade Levels</summary>
-      <div class="mega-panel" id="mega-grades-panel"></div>
-    </details>
-    <details class="mega-drop">
       <summary>Subjects</summary>
       <div class="mega-panel" id="mega-subjects-panel"><div style="padding:8px 10px;font-size:13px;color:var(--muted)">Loading…</div></div>
     </details>
@@ -27,15 +23,12 @@
       <div class="mega-panel" id="mega-types-panel"></div>
     </details>
   </div>
-  <div class="wrap"><div class="mega-quicklinks" id="mega-quicklinks"></div></div>
+  <div class="wrap"><div class="mega-quicklinks" id="mega-quicklinks"><div style="font-size:12.5px;color:var(--muted);padding:8px 0">Loading subjects…</div></div></div>
 </div>
 <script>
 (function(){
-  const GRADES = ['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8','Grade 9','Grade 10','Grade 11','Grade 12'];
   const TYPES = ['Lesson Notes','PowerPoint','Excel','Quiz','Article'];
-  document.getElementById('mega-grades-panel').innerHTML = GRADES.map(g=>`<a href="lms.html?grade=${encodeURIComponent(g)}">${g}</a>`).join('');
   document.getElementById('mega-types-panel').innerHTML = TYPES.map(t=>`<a href="lms.html?type=${encodeURIComponent(t)}">${t}</a>`).join('');
-  document.getElementById('mega-quicklinks').innerHTML = GRADES.map(g=>`<a href="lms.html?grade=${encodeURIComponent(g)}">${g}</a>`).join('');
 })();
 </script>
 <header class="page-hero"><div class="wrap">
@@ -78,7 +71,7 @@
 
   document.title = m.title + ' — Ivy B. Buncaras';
   titleEl.textContent = m.title;
-  metaEl.textContent = `${m.grade_level} · ${m.subject} · ${m.material_type}`;
+  metaEl.textContent = `${m.subject} · ${m.material_type}`;
 
   // ----- Track as "recently viewed" (per-browser, local only) -----
   try{
@@ -152,13 +145,16 @@
 // material load above, so a failure here never breaks the viewer itself.
 (async function(){
   const panel = document.getElementById('mega-subjects-panel');
+  const quicklinks = document.getElementById('mega-quicklinks');
   if(!panel || !dbReady()) return;
   try{
     const all = await fetchLmsMaterials();
     const subjects = [...new Set(all.map(m=>m.subject))].sort();
-    panel.innerHTML = subjects.length
+    const links = subjects.length
       ? subjects.map(s=>`<a href="lms.html?subject=${encodeURIComponent(s)}">${escapeHtml(s)}</a>`).join('')
       : '<div style="padding:8px 10px;font-size:13px;color:var(--muted)">No subjects yet</div>';
+    panel.innerHTML = links;
+    if(quicklinks) quicklinks.innerHTML = subjects.length ? links : '';
   }catch(e){
     panel.innerHTML = '<div style="padding:8px 10px;font-size:13px;color:var(--muted)">Couldn\'t load</div>';
   }
