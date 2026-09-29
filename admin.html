@@ -181,21 +181,10 @@
 
   <!-- LMS -->
   <div class="admin-panel" id="panel-lms">
-    <div class="panel-head"><h2>New / Edit Material</h2><p>Lesson notes, PowerPoint presentations, Excel files, and quizzes — organized by grade level and subject.</p></div>
+    <div class="panel-head"><h2>New / Edit Material</h2><p>Lesson notes, PowerPoint presentations, Excel files, quizzes, and articles — organized by subject.</p></div>
     <form class="admin-form" id="lms-form">
       <input type="hidden" id="lms-id">
-      <div class="row2">
-        <div><label>Grade Level</label>
-          <select id="lms-grade" required>
-            <option value="">Select grade…</option>
-            <option>Grade 1</option><option>Grade 2</option><option>Grade 3</option>
-            <option>Grade 4</option><option>Grade 5</option><option>Grade 6</option>
-            <option>Grade 7</option><option>Grade 8</option><option>Grade 9</option>
-            <option>Grade 10</option><option>Grade 11</option><option>Grade 12</option>
-          </select>
-        </div>
-        <div><label>Subject</label><input type="text" id="lms-subject" placeholder="e.g. Mathematics, Filipino, Science" required></div>
-      </div>
+      <div><label>Subject</label><input type="text" id="lms-subject" placeholder="e.g. Data Structures, Financial Engineering, Public Administration" required></div>
       <div class="row2">
         <div><label>Material Type</label>
           <select id="lms-type" required>
