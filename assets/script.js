@@ -54,3 +54,16 @@ if(soc){
 
 obs();
 trackVisit();
+
+// Mega-nav dropdowns (lms.html / viewer.html) — close others when one opens,
+// and close on outside click. No-op on pages without .mega-drop elements.
+document.querySelectorAll('.mega-drop').forEach(d=>{
+  d.addEventListener('toggle', ()=>{
+    if(d.open) document.querySelectorAll('.mega-drop').forEach(o=>{ if(o!==d) o.removeAttribute('open'); });
+  });
+});
+document.addEventListener('click', (e)=>{
+  document.querySelectorAll('.mega-drop[open]').forEach(d=>{
+    if(!d.contains(e.target)) d.removeAttribute('open');
+  });
+});
