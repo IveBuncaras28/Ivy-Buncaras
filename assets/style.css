@@ -9,7 +9,9 @@ a{color:inherit}
 .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
 nav{position:sticky;top:0;z-index:20;backdrop-filter:blur(10px);background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--line)}
 nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px;gap:16px}
-.brand{font-family:"Cormorant Garamond",serif;font-size:20px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);text-decoration:none;white-space:nowrap}
+.brand{font-family:"Cormorant Garamond",serif;font-size:20px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);text-decoration:none;white-space:nowrap;display:flex;align-items:center}
+.brand img{width:38px;height:38px;border-radius:50%;display:block;transition:transform .25s}
+.brand:hover img{transform:scale(1.06)}
 .links{display:flex;gap:22px;font-size:13px;letter-spacing:.09em;text-transform:uppercase;overflow-x:auto}
 .links a{text-decoration:none;color:var(--muted);padding-bottom:2px;border-bottom:1px solid transparent;transition:.25s;white-space:nowrap}
 .links a:hover,.links a.on{color:var(--gold);border-color:var(--gold)}
@@ -268,3 +270,11 @@ footer a:hover{color:#fff}
 .encyclopedia-body::first-letter{font-family:"Cormorant Garamond",serif;font-size:64px;font-weight:700;float:left;line-height:.82;padding:6px 10px 0 0;color:var(--gold)}
 .encyclopedia-meta{text-align:center;color:var(--muted);font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px}
 .encyclopedia-rule{width:60px;height:1px;background:var(--gold);margin:0 auto 40px}
+.encyclopedia-layout{display:grid;grid-template-columns:210px 1fr;gap:48px;align-items:start;max-width:920px;margin:0 auto}
+.encyclopedia-layout .encyclopedia-body{max-width:none;margin:0}
+.encyclopedia-toc{position:sticky;top:90px;display:flex;flex-direction:column;gap:9px;border-left:2px solid var(--line);padding-left:16px}
+.encyclopedia-toc .toc-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+.encyclopedia-toc a{font-size:13px;color:var(--muted);text-decoration:none;line-height:1.4}
+.encyclopedia-toc a.toc-h3{padding-left:12px;font-size:12.5px}
+.encyclopedia-toc a:hover{color:var(--gold)}
+@media(max-width:860px){.encyclopedia-layout{grid-template-columns:1fr}.encyclopedia-toc{position:static;border-left:none;padding-left:0;border-top:1px solid var(--line);padding-top:14px;order:2;flex-direction:row;flex-wrap:wrap;gap:14px}}
