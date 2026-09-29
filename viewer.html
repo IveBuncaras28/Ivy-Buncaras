@@ -39,7 +39,9 @@
 
 <section><div class="wrap" id="v-body">
   <div class="loading">Loading…</div>
-</div></section>
+</div>
+<div class="wrap"><div id="v-adjacent-nav"></div></div>
+</section>
 
 <footer id="contact-footer">
 <div class="eyebrow" style="color:var(--gold-l)">Get in touch</div>
@@ -59,15 +61,28 @@
   const titleEl = document.getElementById('v-title');
   const metaEl = document.getElementById('v-meta');
   const bodyEl = document.getElementById('v-body');
+  const adjacentEl = document.getElementById('v-adjacent-nav');
   const id = new URLSearchParams(location.search).get('id');
 
   if(!dbReady()){ titleEl.textContent = 'Not connected'; notConfiguredNotice(bodyEl); return; }
   if(!id){ titleEl.textContent = 'Not found'; bodyEl.innerHTML = '<div class="empty">No material was specified.</div>'; return; }
 
-  let m;
-  try{ m = await fetchLmsMaterialById(id); }
+  let all = [];
+  try{ all = await fetchLmsMaterials(); }
   catch(e){ titleEl.textContent = 'Error'; bodyEl.innerHTML = `<div class="empty">Couldn't load this material: ${escapeHtml(e.message)}</div>`; return; }
+
+  const m = all.find(x => x.id === id);
   if(!m){ titleEl.textContent = 'Not found'; bodyEl.innerHTML = '<div class="empty">This material doesn\'t exist.</div>'; return; }
+
+  // Populate the mega-nav (Subjects dropdown + quicklinks row) from the same fetch
+  const megaPanel = document.getElementById('mega-subjects-panel');
+  const megaQuicklinks = document.getElementById('mega-quicklinks');
+  const allSubjects = [...new Set(all.map(x=>x.subject))].sort();
+  const subjectLinks = allSubjects.length
+    ? allSubjects.map(s=>`<a href="lms.html?subject=${encodeURIComponent(s)}">${escapeHtml(s)}</a>`).join('')
+    : '<div style="padding:8px 10px;font-size:13px;color:var(--muted)">No subjects yet</div>';
+  if(megaPanel) megaPanel.innerHTML = subjectLinks;
+  if(megaQuicklinks) megaQuicklinks.innerHTML = allSubjects.length ? subjectLinks : '';
 
   document.title = m.title + ' — Ivy B. Buncaras';
   titleEl.textContent = m.title;
@@ -80,6 +95,29 @@
     recent.unshift(m.id);
     localStorage.setItem('lms_recent', JSON.stringify(recent.slice(0, 12)));
   }catch(e){}
+
+  // ----- Previous / Next within the same subject -----
+  // Uses the same order materials appear in on the LMS page (sort_order,
+  // then creation date) — so reordering there also reorders this nav.
+  const subjectGroup = all.filter(x => x.subject === m.subject);
+  const idx = subjectGroup.findIndex(x => x.id === m.id);
+  const prevItem = idx > 0 ? subjectGroup[idx - 1] : null;
+  const nextItem = idx < subjectGroup.length - 1 ? subjectGroup[idx + 1] : null;
+  if(prevItem || nextItem){
+    adjacentEl.innerHTML = `
+      <div class="adjacent-nav">
+        ${prevItem ? `<a class="prev" href="viewer.html?id=${encodeURIComponent(prevItem.id)}">
+          <div class="dir-label">← Previous</div>
+          <div class="adj-subject">${escapeHtml(prevItem.subject)}</div>
+          <div class="adj-title">${escapeHtml(prevItem.title)}</div>
+        </a>` : '<div></div>'}
+        ${nextItem ? `<a class="next" href="viewer.html?id=${encodeURIComponent(nextItem.id)}">
+          <div class="dir-label">Next →</div>
+          <div class="adj-subject">${escapeHtml(nextItem.subject)}</div>
+          <div class="adj-title">${escapeHtml(nextItem.title)}</div>
+        </a>` : '<div></div>'}
+      </div>`;
+  }
 
   // ----- Article: Britannica-style reading view -----
   if(m.material_type === 'Article'){
@@ -139,25 +177,6 @@
     ${previewHtml}
   `;
   if(window.obs) obs();
-})();
-
-// Populate the mega-nav Subjects dropdown — kept independent of the main
-// material load above, so a failure here never breaks the viewer itself.
-(async function(){
-  const panel = document.getElementById('mega-subjects-panel');
-  const quicklinks = document.getElementById('mega-quicklinks');
-  if(!panel || !dbReady()) return;
-  try{
-    const all = await fetchLmsMaterials();
-    const subjects = [...new Set(all.map(m=>m.subject))].sort();
-    const links = subjects.length
-      ? subjects.map(s=>`<a href="lms.html?subject=${encodeURIComponent(s)}">${escapeHtml(s)}</a>`).join('')
-      : '<div style="padding:8px 10px;font-size:13px;color:var(--muted)">No subjects yet</div>';
-    panel.innerHTML = links;
-    if(quicklinks) quicklinks.innerHTML = subjects.length ? links : '';
-  }catch(e){
-    panel.innerHTML = '<div style="padding:8px 10px;font-size:13px;color:var(--muted)">Couldn\'t load</div>';
-  }
 })();
 </script>
 </body></html>
