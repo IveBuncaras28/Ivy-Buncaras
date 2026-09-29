@@ -12,6 +12,32 @@
 </head><body>
 <nav><div class="wrap"><a class="brand" href="index.html" aria-label="Ivy B. Buncaras"><img src="assets/favicon-48.png" alt="Ivy B. Buncaras"></a>
 <div class="links"><a href="about.html">About</a><a href="projects.html">Projects</a><a href="research.html">Research</a><a href="library.html">Library</a><a href="lms.html">LMS</a><a href="dashboard.html">Dashboard PH</a><a href="blog.html">Blog</a><a href="contact.html">Contact</a></div></div></nav>
+<div class="mega-nav">
+  <div class="wrap">
+    <details class="mega-drop">
+      <summary>Grade Levels</summary>
+      <div class="mega-panel" id="mega-grades-panel"></div>
+    </details>
+    <details class="mega-drop">
+      <summary>Subjects</summary>
+      <div class="mega-panel" id="mega-subjects-panel"><div style="padding:8px 10px;font-size:13px;color:var(--muted)">Loading…</div></div>
+    </details>
+    <details class="mega-drop">
+      <summary>Material Types</summary>
+      <div class="mega-panel" id="mega-types-panel"></div>
+    </details>
+  </div>
+  <div class="wrap"><div class="mega-quicklinks" id="mega-quicklinks"></div></div>
+</div>
+<script>
+(function(){
+  const GRADES = ['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8','Grade 9','Grade 10','Grade 11','Grade 12'];
+  const TYPES = ['Lesson Notes','PowerPoint','Excel','Quiz','Article'];
+  document.getElementById('mega-grades-panel').innerHTML = GRADES.map(g=>`<a href="lms.html?grade=${encodeURIComponent(g)}">${g}</a>`).join('');
+  document.getElementById('mega-types-panel').innerHTML = TYPES.map(t=>`<a href="lms.html?type=${encodeURIComponent(t)}">${t}</a>`).join('');
+  document.getElementById('mega-quicklinks').innerHTML = GRADES.map(g=>`<a href="lms.html?grade=${encodeURIComponent(g)}">${g}</a>`).join('');
+})();
+</script>
 <header class="page-hero"><div class="wrap">
 <div class="eyebrow"><a href="lms.html" style="color:var(--gold-l)">← Back to LMS</a></div>
 <h1 id="v-title">Loading…</h1>
@@ -120,6 +146,22 @@
     ${previewHtml}
   `;
   if(window.obs) obs();
+})();
+
+// Populate the mega-nav Subjects dropdown — kept independent of the main
+// material load above, so a failure here never breaks the viewer itself.
+(async function(){
+  const panel = document.getElementById('mega-subjects-panel');
+  if(!panel || !dbReady()) return;
+  try{
+    const all = await fetchLmsMaterials();
+    const subjects = [...new Set(all.map(m=>m.subject))].sort();
+    panel.innerHTML = subjects.length
+      ? subjects.map(s=>`<a href="lms.html?subject=${encodeURIComponent(s)}">${escapeHtml(s)}</a>`).join('')
+      : '<div style="padding:8px 10px;font-size:13px;color:var(--muted)">No subjects yet</div>';
+  }catch(e){
+    panel.innerHTML = '<div style="padding:8px 10px;font-size:13px;color:var(--muted)">Couldn\'t load</div>';
+  }
 })();
 </script>
 </body></html>
