@@ -716,7 +716,6 @@ function setupLms(){
       return;
     }
     const row = {
-      grade_level: document.getElementById('lms-grade').value,
       subject: document.getElementById('lms-subject').value.trim(),
       material_type: type,
       title: document.getElementById('lms-title').value.trim(),
@@ -763,7 +762,7 @@ async function loadLms(){
   list.innerHTML = data.map(m => `
     <div class="admin-row">
       <div class="info"><b>${escapeHtml(m.title)} <span class="badge live">${escapeHtml(m.material_type)}</span></b>
-      <span>${escapeHtml(m.grade_level)} · ${escapeHtml(m.subject)} · ${fmtDate(m.created_at)}</span></div>
+      <span>${escapeHtml(m.subject)} · ${fmtDate(m.created_at)}</span></div>
       <div class="btns">
         <button class="btn-mini" onclick="editLms('${m.id}')">Edit</button>
         <button class="btn-mini danger" onclick="deleteLms('${m.id}')">Delete</button>
@@ -775,7 +774,6 @@ window.editLms = async function(id){
   const { data } = await sb.from('lms_materials').select('*').eq('id', id).single();
   if(!data) return;
   document.getElementById('lms-id').value = data.id;
-  document.getElementById('lms-grade').value = data.grade_level;
   document.getElementById('lms-subject').value = data.subject;
   document.getElementById('lms-type').value = data.material_type;
   document.getElementById('lms-title').value = data.title;
