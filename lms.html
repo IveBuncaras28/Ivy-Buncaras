@@ -16,6 +16,32 @@
 </head><body>
 <nav><div class="wrap"><a class="brand" href="index.html" aria-label="Ivy B. Buncaras"><img src="assets/favicon-48.png" alt="Ivy B. Buncaras"></a>
 <div class="links"><a href="about.html">About</a><a href="projects.html">Projects</a><a href="research.html">Research</a><a href="library.html">Library</a><a href="lms.html">LMS</a><a href="dashboard.html">Dashboard PH</a><a href="blog.html">Blog</a><a href="contact.html">Contact</a></div></div></nav>
+<div class="mega-nav">
+  <div class="wrap">
+    <details class="mega-drop">
+      <summary>Grade Levels</summary>
+      <div class="mega-panel" id="mega-grades-panel"></div>
+    </details>
+    <details class="mega-drop">
+      <summary>Subjects</summary>
+      <div class="mega-panel" id="mega-subjects-panel"><div style="padding:8px 10px;font-size:13px;color:var(--muted)">Loading…</div></div>
+    </details>
+    <details class="mega-drop">
+      <summary>Material Types</summary>
+      <div class="mega-panel" id="mega-types-panel"></div>
+    </details>
+  </div>
+  <div class="wrap"><div class="mega-quicklinks" id="mega-quicklinks"></div></div>
+</div>
+<script>
+(function(){
+  const GRADES = ['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8','Grade 9','Grade 10','Grade 11','Grade 12'];
+  const TYPES = ['Lesson Notes','PowerPoint','Excel','Quiz','Article'];
+  document.getElementById('mega-grades-panel').innerHTML = GRADES.map(g=>`<a href="lms.html?grade=${encodeURIComponent(g)}">${g}</a>`).join('');
+  document.getElementById('mega-types-panel').innerHTML = TYPES.map(t=>`<a href="lms.html?type=${encodeURIComponent(t)}">${t}</a>`).join('');
+  document.getElementById('mega-quicklinks').innerHTML = GRADES.map(g=>`<a href="lms.html?grade=${encodeURIComponent(g)}">${g}</a>`).join('');
+})();
+</script>
 <header class="page-hero"><div class="wrap">
 <div class="eyebrow">Learning Resources</div>
 <h1>LMS — Lesson Materials</h1>
@@ -91,6 +117,14 @@
 
   const TYPE_ICON = { 'Lesson Notes':'📄', 'PowerPoint':'📊', 'Excel':'📈', 'Quiz':'📝', 'Article':'📖' };
   const byId = {}; materials.forEach(m => byId[m.id] = m);
+
+  const megaSubjectsPanel = document.getElementById('mega-subjects-panel');
+  if(megaSubjectsPanel){
+    const allSubjects = [...new Set(materials.map(m=>m.subject))].sort();
+    megaSubjectsPanel.innerHTML = allSubjects.length
+      ? allSubjects.map(s=>`<a href="lms.html?subject=${encodeURIComponent(s)}">${escapeHtml(s)}</a>`).join('')
+      : '<div style="padding:8px 10px;font-size:13px;color:var(--muted)">No subjects yet</div>';
+  }
 
   // ----- "Pick up where you left off" -----
   function renderRecent(){
@@ -182,6 +216,25 @@
 
   renderSubjectFilters();
   paginator.render();
+
+  // Apply filters carried in the URL (e.g. arriving from a mega-nav link)
+  const urlParams = new URLSearchParams(location.search);
+  const qGrade = urlParams.get('grade');
+  const qSubject = urlParams.get('subject');
+  const qType = urlParams.get('type');
+  if(qGrade){
+    const btn = [...gradeFiltersEl.querySelectorAll('button')].find(b => b.textContent === qGrade);
+    if(btn) btn.click();
+  }
+  if(qSubject){
+    const btn = [...subjectFiltersEl.querySelectorAll('button')].find(b => b.textContent === qSubject);
+    if(btn) btn.click();
+  }
+  if(qType){
+    const btn = [...typeFiltersEl.querySelectorAll('button')].find(b => b.textContent === qType);
+    if(btn) btn.click();
+  }
+
   if(window.obs) obs();
 })();
 </script>
