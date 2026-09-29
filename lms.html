@@ -19,10 +19,6 @@
 <div class="mega-nav">
   <div class="wrap">
     <details class="mega-drop">
-      <summary>Grade Levels</summary>
-      <div class="mega-panel" id="mega-grades-panel"></div>
-    </details>
-    <details class="mega-drop">
       <summary>Subjects</summary>
       <div class="mega-panel" id="mega-subjects-panel"><div style="padding:8px 10px;font-size:13px;color:var(--muted)">Loading…</div></div>
     </details>
@@ -31,21 +27,18 @@
       <div class="mega-panel" id="mega-types-panel"></div>
     </details>
   </div>
-  <div class="wrap"><div class="mega-quicklinks" id="mega-quicklinks"></div></div>
+  <div class="wrap"><div class="mega-quicklinks" id="mega-quicklinks"><div style="font-size:12.5px;color:var(--muted);padding:8px 0">Loading subjects…</div></div></div>
 </div>
 <script>
 (function(){
-  const GRADES = ['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8','Grade 9','Grade 10','Grade 11','Grade 12'];
   const TYPES = ['Lesson Notes','PowerPoint','Excel','Quiz','Article'];
-  document.getElementById('mega-grades-panel').innerHTML = GRADES.map(g=>`<a href="lms.html?grade=${encodeURIComponent(g)}">${g}</a>`).join('');
   document.getElementById('mega-types-panel').innerHTML = TYPES.map(t=>`<a href="lms.html?type=${encodeURIComponent(t)}">${t}</a>`).join('');
-  document.getElementById('mega-quicklinks').innerHTML = GRADES.map(g=>`<a href="lms.html?grade=${encodeURIComponent(g)}">${g}</a>`).join('');
 })();
 </script>
 <header class="page-hero"><div class="wrap">
 <div class="eyebrow">Learning Resources</div>
 <h1>LMS — Lesson Materials</h1>
-<p>Lesson notes, PowerPoint presentations, Excel worksheets, quizzes, and articles — browse by grade level and subject.</p>
+<p>Lesson notes, PowerPoint presentations, Excel worksheets, quizzes, and articles — browse by subject.</p>
 </div></header>
 
 <!-- Ads1 -->
@@ -79,8 +72,7 @@
   <div class="lms-recent-track" id="lms-recent-track"></div>
 </div>
 
-<div class="filters reveal" id="lms-grade-filters"></div>
-<div class="filters reveal" id="lms-subject-filters" style="margin-top:-16px"></div>
+<div class="filters reveal" id="lms-subject-filters"></div>
 <div class="filters reveal" id="lms-type-filters" style="margin-top:-16px"></div>
 <div class="grid" id="lms-grid"><div class="loading">Loading materials…</div></div>
 <div class="pagination" id="lms-pagination">
@@ -104,7 +96,6 @@
 <script>
 (async function(){
   const grid = document.getElementById('lms-grid');
-  const gradeFiltersEl = document.getElementById('lms-grade-filters');
   const subjectFiltersEl = document.getElementById('lms-subject-filters');
   const typeFiltersEl = document.getElementById('lms-type-filters');
   const searchInput = document.getElementById('lms-search-input');
@@ -118,13 +109,16 @@
   const TYPE_ICON = { 'Lesson Notes':'📄', 'PowerPoint':'📊', 'Excel':'📈', 'Quiz':'📝', 'Article':'📖' };
   const byId = {}; materials.forEach(m => byId[m.id] = m);
 
+  const allSubjects = [...new Set(materials.map(m=>m.subject))].sort();
   const megaSubjectsPanel = document.getElementById('mega-subjects-panel');
   if(megaSubjectsPanel){
-    const allSubjects = [...new Set(materials.map(m=>m.subject))].sort();
     megaSubjectsPanel.innerHTML = allSubjects.length
       ? allSubjects.map(s=>`<a href="lms.html?subject=${encodeURIComponent(s)}">${escapeHtml(s)}</a>`).join('')
       : '<div style="padding:8px 10px;font-size:13px;color:var(--muted)">No subjects yet</div>';
   }
+  document.getElementById('mega-quicklinks').innerHTML = allSubjects.length
+    ? allSubjects.map(s=>`<a href="lms.html?subject=${encodeURIComponent(s)}">${escapeHtml(s)}</a>`).join('')
+    : '';
 
   // ----- "Pick up where you left off" -----
   function renderRecent(){
@@ -138,7 +132,7 @@
       <a class="lms-recent-card" href="viewer.html?id=${encodeURIComponent(m.id)}">
         <div class="ic">${TYPE_ICON[m.material_type] || '📄'}</div>
         <div class="t">${escapeHtml(m.title)}</div>
-        <div class="m">${escapeHtml(m.grade_level)} · ${escapeHtml(m.subject)}</div>
+        <div class="m">${escapeHtml(m.subject)}</div>
       </a>`).join('');
   }
   renderRecent();
@@ -146,18 +140,17 @@
   // ----- Cards -----
   const card = m => `
     <a class="card reveal lms-card" href="viewer.html?id=${encodeURIComponent(m.id)}">
-      <div class="lms-thumb"><span>${TYPE_ICON[m.material_type] || '📄'}</span><span class="grade-badge">${escapeHtml(m.grade_level)}</span></div>
+      <div class="lms-thumb"><span>${TYPE_ICON[m.material_type] || '📄'}</span></div>
       <div class="type-line">${escapeHtml(m.material_type)}</div>
       <h3>${escapeHtml(m.title)}</h3>
       <div class="subject-line">${escapeHtml(m.subject)}</div>
       <p>${escapeHtml(m.description||'')}</p>
     </a>`;
 
-  let currentGrade = 'All', currentSubject = 'All', currentType = 'All', searchTerm = '';
+  let currentSubject = 'All', currentType = 'All', searchTerm = '';
 
   const paginator = makePaginator(
     () => materials.filter(m =>
-      (currentGrade === 'All' || m.grade_level === currentGrade) &&
       (currentSubject === 'All' || m.subject === currentSubject) &&
       (currentType === 'All' || m.material_type === currentType) &&
       (!searchTerm || (m.title + ' ' + m.subject + ' ' + (m.description||'')).toLowerCase().includes(searchTerm))
@@ -178,32 +171,14 @@
     paginator.reset();
   });
 
-  const GRADE_ORDER = ['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8','Grade 9','Grade 10','Grade 11','Grade 12'];
-  const gradesPresent = GRADE_ORDER.filter(g => materials.some(m => m.grade_level === g));
-  const otherGrades = [...new Set(materials.map(m=>m.grade_level))].filter(g => !GRADE_ORDER.includes(g));
-  const grades = ['All', ...gradesPresent, ...otherGrades];
-
-  gradeFiltersEl.innerHTML = grades.map((g,i)=>`<button class="${i?'':'on'}">${escapeHtml(g)}</button>`).join('');
-  gradeFiltersEl.querySelectorAll('button').forEach(b => b.onclick = () => {
-    gradeFiltersEl.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+  const subjects = ['All', ...allSubjects];
+  subjectFiltersEl.innerHTML = subjects.map((s,i)=>`<button class="${i?'':'on'}">${escapeHtml(s)}</button>`).join('');
+  subjectFiltersEl.querySelectorAll('button').forEach(b => b.onclick = () => {
+    subjectFiltersEl.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
     b.classList.add('on');
-    currentGrade = b.textContent;
-    renderSubjectFilters();
+    currentSubject = b.textContent;
     paginator.reset();
   });
-
-  function renderSubjectFilters(){
-    const pool = currentGrade === 'All' ? materials : materials.filter(m => m.grade_level === currentGrade);
-    const subjects = ['All', ...new Set(pool.map(m => m.subject))];
-    if(!subjects.includes(currentSubject)) currentSubject = 'All';
-    subjectFiltersEl.innerHTML = subjects.map(s => `<button class="${s===currentSubject?'on':''}">${escapeHtml(s)}</button>`).join('');
-    subjectFiltersEl.querySelectorAll('button').forEach(b => b.onclick = () => {
-      subjectFiltersEl.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
-      b.classList.add('on');
-      currentSubject = b.textContent;
-      paginator.reset();
-    });
-  }
 
   const typesPresent = ['All', ...new Set(materials.map(m => m.material_type))];
   typeFiltersEl.innerHTML = typesPresent.map((t,i)=>`<button class="${i?'':'on'}">${escapeHtml(t)}</button>`).join('');
@@ -214,18 +189,12 @@
     paginator.reset();
   });
 
-  renderSubjectFilters();
   paginator.render();
 
   // Apply filters carried in the URL (e.g. arriving from a mega-nav link)
   const urlParams = new URLSearchParams(location.search);
-  const qGrade = urlParams.get('grade');
   const qSubject = urlParams.get('subject');
   const qType = urlParams.get('type');
-  if(qGrade){
-    const btn = [...gradeFiltersEl.querySelectorAll('button')].find(b => b.textContent === qGrade);
-    if(btn) btn.click();
-  }
   if(qSubject){
     const btn = [...subjectFiltersEl.querySelectorAll('button')].find(b => b.textContent === qSubject);
     if(btn) btn.click();
